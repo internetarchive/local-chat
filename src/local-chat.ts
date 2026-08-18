@@ -1,5 +1,6 @@
+import { type Exchange, readHistory } from './history.js'
 import { getLanguageModel, type LanguageModelAPI, type LanguageModelMessage, type LanguageModelSession } from './language-model.js'
-import { renderMarkdownStream } from './markdown.js'
+import { renderCompleteMarkdown, renderMarkdownStream } from './markdown.js'
 
 const WIDGET_STYLES = `
   :host {
@@ -432,7 +433,41 @@ export class LocalChat extends HTMLElement {
   #setCollapsed(collapsed: boolean): void {
     if (this.#toggleButton) this.#toggleButton.hidden = !collapsed
     if (this.#panel) this.#panel.hidden = collapsed
-    if (!collapsed) void this.#establishParentSession()
+    if (!collapsed) {
+      this.#restoreHistoryIfNeeded()
+      void this.#establishParentSession()
+    }
+  }
+
+  #historyChecked = false
+
+  /**
+   * Reads History synchronously and renders it into the transcript right
+   * away, on first Expand -- independent of (and well before) Parent Session
+   * establishment, which is comparatively slow (on-device model dependent).
+   * See ADR-0005: a Conversation the user already has doesn't need to wait
+   * for the model just to be looked at again.
+   */
+  #restoreHistoryIfNeeded(): void {
+    if (this.#historyChecked) return
+    this.#historyChecked = true
+    const exchanges = readHistory(this.historyKey, this.maxHistory)
+    if (exchanges.length === 0) return
+    this.#conversationStarted = true
+    if (this.#emptyState) this.#emptyState.innerHTML = ''
+    for (const exchange of exchanges) {
+      this.#appendMessageBubble('user', exchange.user)
+      const bubble = this.#appendMessageBubble('assistant', '')
+      void renderCompleteMarkdown(bubble, exchange.assistant, (mutate) => this.#autoScrollTranscript(mutate))
+    }
+    // Claim the Child Session slot synchronously, right now -- before
+    // #establishParentSession() is even invoked below -- so a message sent
+    // in this same synchronous tick (before any of this has had a chance to
+    // await) sees #childSessionPromise already set and awaits this same
+    // fork, rather than tripping the ordinary lazy-fork path in
+    // #getOrForkChildSession and triggering a second, competing fork.
+    this.#childSessionPromise = this.#establishParentSession().then((parent) => this.#forkAndReplayChildSession(parent, exchanges))
+    void this.#childSessionPromise.then((child) => this.#generateFollowups(child))
   }
 
   /**
@@ -660,8 +695,25 @@ export class LocalChat extends HTMLElement {
     if (contextText) {
       await session.append([{ role: 'user', content: `Reference context:\n\n${contextText}` }])
     }
-    if (this.hasAttribute('icebreakers')) void this.#generateIcebreakers(session)
+    if (this.hasAttribute('icebreakers')) {
+      void this.#generateIcebreakers(session)
+    }
     return session
+  }
+
+  /**
+   * Forks a Child Session from `parentSession` and replays every restored
+   * Exchange into it (see ADR-0005), so the Conversation continues from
+   * where History left off instead of starting over.
+   */
+  async #forkAndReplayChildSession(parentSession: LanguageModelSession, exchanges: Exchange[]): Promise<LanguageModelSession> {
+    const child = await parentSession.clone()
+    const messages: LanguageModelMessage[] = exchanges.flatMap((exchange) => [
+      { role: 'user' as const, content: exchange.user },
+      { role: 'assistant' as const, content: exchange.assistant },
+    ])
+    await child.append(messages)
+    return child
   }
 
   #createSession(LM: LanguageModelAPI, onProgress?: (fraction: number) => void): Promise<LanguageModelSession> {

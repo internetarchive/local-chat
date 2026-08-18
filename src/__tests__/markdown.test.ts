@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { renderMarkdownStream, UnsafeContentError } from '../markdown.js'
+import { renderCompleteMarkdown, renderMarkdownStream, UnsafeContentError } from '../markdown.js'
 
 function streamOf(chunks: string[]): ReadableStream<string> {
   return new ReadableStream<string>({
@@ -75,5 +75,28 @@ describe('renderMarkdownStream', () => {
     // real DOM mutation), so it needs the same wrap coverage as every chunk.
     expect(wrapCalls).toBe(4)
     expect(container.textContent).toBe('one two three')
+  })
+})
+
+describe('renderCompleteMarkdown', () => {
+  it('renders an already-complete string through the same pipeline as a live stream', async () => {
+    const container = document.createElement('div')
+
+    const result = await renderCompleteMarkdown(container, 'Hello **world**')
+
+    expect(container.innerHTML).toContain('<strong>world</strong>')
+    expect(result).toBe('Hello **world**')
+  })
+
+  it('accepts the same wrap hook as renderMarkdownStream', async () => {
+    const container = document.createElement('div')
+    let wrapCalls = 0
+
+    await renderCompleteMarkdown(container, 'hi', (mutate) => {
+      wrapCalls += 1
+      mutate()
+    })
+
+    expect(wrapCalls).toBeGreaterThan(0)
   })
 })

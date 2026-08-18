@@ -59,3 +59,23 @@ export async function renderMarkdownStream(
   }
   return accumulated
 }
+
+/**
+ * Renders already-complete markdown text into `container` through the same
+ * pipeline as a live streamed response (incremental parser, sanitized in
+ * place) -- for restoring a persisted History Exchange, which should look
+ * identical to a response that was actually just streamed, not raw text.
+ */
+export function renderCompleteMarkdown(
+  container: HTMLElement,
+  text: string,
+  wrap?: (mutate: () => void) => void,
+): Promise<string> {
+  const stream = new ReadableStream<string>({
+    start(controller) {
+      controller.enqueue(text)
+      controller.close()
+    },
+  })
+  return renderMarkdownStream(container, stream, wrap)
+}
