@@ -32,6 +32,7 @@ export class LocalChat extends HTMLElement {
   #toggleButton: HTMLButtonElement | undefined
   #panel: HTMLDivElement | undefined
   #transcript: HTMLDivElement | undefined
+  #emptyState: HTMLDivElement | undefined
   #input: HTMLInputElement | undefined
 
   constructor() {
@@ -73,6 +74,10 @@ export class LocalChat extends HTMLElement {
     closeButton.textContent = '×'
     closeButton.addEventListener('click', () => this.#setCollapsed(true))
     this.#panel.appendChild(closeButton)
+
+    this.#emptyState = document.createElement('div')
+    this.#emptyState.setAttribute('part', 'empty-state')
+    this.#panel.appendChild(this.#emptyState)
 
     this.#transcript = document.createElement('div')
     this.#transcript.setAttribute('part', 'transcript')
@@ -165,7 +170,21 @@ export class LocalChat extends HTMLElement {
     if (contextText) {
       await session.append([{ role: 'user', content: `Reference context:\n\n${contextText}` }])
     }
+    if (this.hasAttribute('icebreakers')) void this.#generateIcebreakers(session)
     return session
+  }
+
+  async #generateIcebreakers(parentSession: LanguageModelSession): Promise<void> {
+    const max = this.maxFollowups
+    if (max === 0) return
+    const scratch = await parentSession.clone()
+    const options = await this.#requestSuggestions(
+      scratch,
+      `Suggest up to ${max} brief opening questions a user might want to ask, based on the available context.`,
+      max,
+    )
+    const container = this.#renderPills('icebreaker', options, (text) => this.#submitText(text))
+    this.#emptyState?.appendChild(container)
   }
 
   #childSessionPromise: Promise<LanguageModelSession> | undefined
@@ -185,10 +204,22 @@ export class LocalChat extends HTMLElement {
     return bubble
   }
 
+  get maxFollowups(): number {
+    const raw = this.getAttribute('max-followups')
+    if (raw === null) return 3
+    const parsed = Number.parseInt(raw, 10)
+    return Number.isNaN(parsed) || parsed < 0 ? 3 : parsed
+  }
+
   #send(): void {
     const text = this.#input?.value.trim() ?? ''
     if (!text) return
     if (this.#input) this.#input.value = ''
+    this.#submitText(text)
+  }
+
+  #submitText(text: string): void {
+    if (this.#emptyState) this.#emptyState.innerHTML = ''
     void this.#sendMessage(text)
   }
 
@@ -198,6 +229,57 @@ export class LocalChat extends HTMLElement {
     const session = await this.#getOrForkChildSession()
     const stream = session.promptStreaming(text, {})
     await renderMarkdownStream(bubble, stream)
+    await this.#generateFollowups(session)
+  }
+
+  #currentFollowupScratch: LanguageModelSession | undefined
+
+  async #generateFollowups(childSession: LanguageModelSession): Promise<void> {
+    const max = this.maxFollowups
+    if (max === 0) return
+    const scratch = await childSession.clone()
+    this.#currentFollowupScratch = scratch
+    const options = await this.#requestSuggestions(
+      scratch,
+      `Suggest up to ${max} brief follow-up questions the user might want to ask next, based on the conversation so far.`,
+      max,
+    )
+    if (this.#currentFollowupScratch !== scratch) return // Superseded while awaiting.
+    this.#currentFollowupScratch = undefined
+    this.#renderFollowups(options)
+  }
+
+  async #requestSuggestions(session: LanguageModelSession, prompt: string, max: number): Promise<string[]> {
+    const raw = await session.prompt(prompt, {
+      responseConstraint: { type: 'array', items: { type: 'string' }, maxItems: max },
+    })
+    try {
+      const parsed: unknown = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : []
+    } catch {
+      return []
+    }
+  }
+
+  #renderFollowups(options: string[]): void {
+    const container = this.#renderPills('followup', options, (text) => {
+      container?.remove()
+      void this.#sendMessage(text)
+    })
+    this.#transcript?.appendChild(container)
+  }
+
+  #renderPills(part: string, options: string[], onClick: (text: string) => void): HTMLDivElement {
+    const container = document.createElement('div')
+    container.setAttribute('part', `${part}s`)
+    for (const option of options) {
+      const pill = document.createElement('button')
+      pill.setAttribute('part', part)
+      pill.textContent = option
+      pill.addEventListener('click', () => onClick(option))
+      container.appendChild(pill)
+    }
+    return container
   }
 }
 
