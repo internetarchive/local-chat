@@ -361,10 +361,30 @@ export class LocalChat extends HTMLElement {
         const dx = moveEvent.clientX - startX
         const dy = moveEvent.clientY - startY
         if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragged = true
-        this.style.left = `${startLeft + dx}px`
-        this.style.top = `${startTop + dy}px`
-        this.style.right = 'auto'
-        this.style.bottom = 'auto'
+
+        const newLeft = startLeft + dx
+        const newTop = startTop + dy
+
+        // Anchor each axis toward whichever edge the Widget is currently nearer
+        // to, rather than always the top-left -- so the box grows away from the
+        // edge it's close to (staying on-screen when Collapsed<->Expanded swaps
+        // in a much larger or smaller child), and Collapsing/Expanding later
+        // lands back in the same corner/quadrant instead of jumping to whatever
+        // the last drag happened to set.
+        if (newLeft + rect.width / 2 < window.innerWidth / 2) {
+          this.style.left = `${newLeft}px`
+          this.style.right = 'auto'
+        } else {
+          this.style.right = `${window.innerWidth - (newLeft + rect.width)}px`
+          this.style.left = 'auto'
+        }
+        if (newTop + rect.height / 2 < window.innerHeight / 2) {
+          this.style.top = `${newTop}px`
+          this.style.bottom = 'auto'
+        } else {
+          this.style.bottom = `${window.innerHeight - (newTop + rect.height)}px`
+          this.style.top = 'auto'
+        }
       }
       const onUp = () => {
         window.removeEventListener('pointermove', onMove)
