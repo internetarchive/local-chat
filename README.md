@@ -22,9 +22,10 @@ npm run lint
 npm run build
 ```
 
-`demo/index.html` (served by `npm run dev`) is a manual test page for
-verifying against a real Chrome build — it is not part of the published
-package.
+`index.html` (served by `npm run dev`) doubles as the project's
+introduction/documentation page and a live demo — its own chat widget is
+grounded in the page's documentation content and answers questions about
+it. It is not part of the published package (`dist` only).
 
 ## License
 
