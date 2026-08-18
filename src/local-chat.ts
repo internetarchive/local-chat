@@ -15,6 +15,13 @@ const WIDGET_STYLES = `
     font: inherit;
     cursor: pointer;
   }
+  [hidden] {
+    /* Parts below declare their own \`display\` for their visible state, which --
+       per the CSS cascade -- would otherwise always beat the UA stylesheet's
+       [hidden] { display: none } regardless of selector specificity, since normal
+       author declarations always win over normal user-agent declarations. */
+    display: none !important;
+  }
   [part="toggle"] {
     width: 3.25rem;
     height: 3.25rem;
@@ -269,6 +276,7 @@ export class LocalChat extends HTMLElement {
     let dragged = false
 
     handle.addEventListener('pointerdown', (e) => {
+      if (e.target !== handle && (e.target as HTMLElement).closest('button')) return
       dragged = false
       handle.setPointerCapture(e.pointerId)
       const startX = e.clientX
