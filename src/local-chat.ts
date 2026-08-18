@@ -163,6 +163,20 @@ const WIDGET_STYLES = `
   [part~="message"] > :last-child {
     margin-bottom: 0;
   }
+  [part~="message"] pre {
+    /* pre preserves whitespace/doesn't wrap by default, so a long line would
+       otherwise widen the bubble -- and since the transcript sets overflow-y
+       without overflow-x, an overlong box here made the whole transcript
+       scroll horizontally too (per the CSS overflow spec, a non-"visible"
+       value on one axis computes "visible" on the other as "auto" instead).
+       Confining the scroll to the code block itself keeps that contained. */
+    max-width: 100%;
+    overflow-x: auto;
+    box-sizing: border-box;
+    background: var(--local-chat-code-background, #e5e5e5);
+    padding: 0.6em 0.75em;
+    border-radius: 0.4em;
+  }
   [part~="message-user"] {
     display: block;
     margin-inline-start: auto;

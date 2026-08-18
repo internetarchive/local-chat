@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it } from 'vitest'
-import { flushMicrotasks, mockLanguageModel, mount } from './test-helpers.js'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { createMockSession, expandWidget, flushMicrotasks, mockLanguageModel, mount, sendMessage } from './test-helpers.js'
 
 describe('Shadow DOM styling', () => {
   afterEach(() => {
@@ -29,5 +29,35 @@ describe('Shadow DOM styling', () => {
     const style = chat.shadowRoot?.querySelector('style')
     expect(style?.textContent).toContain('[part~="message"] > :first-child')
     expect(style?.textContent).toContain('[part~="message"] > :last-child')
+  })
+
+  it('a code block renders as a real <pre><code> element, and the stylesheet confines/styles it', async () => {
+    // jsdom doesn't expose a usable CSSStyleSheet for a <style> inside a
+    // shadow root here (style.sheet is null), so a computed-style assertion
+    // for this rule can't actually discriminate -- the same category of
+    // jsdom CSS-engine gap hit earlier for [hidden] and :empty. This checks
+    // the DOM structure the rule targets, plus a regression lock on the
+    // rule's presence; the actual overflow/background behavior is verified
+    // against real Chrome instead.
+    const childSession = createMockSession({ promptStreamingChunks: ['```\nconst x = 1;\n```'] })
+    const parentSession = createMockSession()
+    vi.mocked(parentSession.clone).mockResolvedValue(childSession)
+    const LM = mockLanguageModel({ parentSession })
+    ;(globalThis as { LanguageModel?: unknown }).LanguageModel = LM
+    const chat = mount()
+    await flushMicrotasks()
+    expandWidget(chat)
+    await flushMicrotasks()
+
+    sendMessage(chat, 'show me some code')
+    await flushMicrotasks()
+
+    const pre = chat.shadowRoot?.querySelector('[part~="message-assistant"] pre')
+    expect(pre?.querySelector('code')?.textContent).toBe('const x = 1;')
+
+    const style = chat.shadowRoot?.querySelector('style')
+    expect(style?.textContent).toContain('[part~="message"] pre')
+    expect(style?.textContent).toContain('overflow-x: auto')
+    expect(style?.textContent).toContain('var(--local-chat-code-background')
   })
 })
