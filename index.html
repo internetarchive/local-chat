@@ -170,7 +170,13 @@
             </tr>
             <tr>
               <td><code>logo</code></td>
-              <td>Overrides the default 💬 glyph, used both for the collapsed toggle button and, in the panel header, right before the title. Also available as a property, which takes priority over the attribute.</td>
+              <td>
+                Overrides the default 💬 glyph, used both for the collapsed toggle button and, in the panel header,
+                right before the title. Plain text/emoji renders as-is; a value that looks like an image reference
+                (a <code>data:image/</code> URI, a URL, or a filename ending in <code>.png</code>/<code>.jpg</code>/
+                <code>.gif</code>/<code>.svg</code>/<code>.webp</code>/<code>.avif</code>) renders as an image
+                instead. Also available as a property, which takes priority over the attribute.
+              </td>
             </tr>
             <tr>
               <td><code>title</code></td>

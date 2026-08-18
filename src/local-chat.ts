@@ -31,6 +31,9 @@ const WIDGET_STYLES = `
     z-index: 2147483000;
   }
   [part="toggle"] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 3.25rem;
     height: 3.25rem;
     border-radius: 50%;
@@ -39,6 +42,11 @@ const WIDGET_STYLES = `
     color: var(--local-chat-accent-color, #fff);
     font-size: 1.4rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  }
+  [part="toggle"] img {
+    width: 1.6rem;
+    height: 1.6rem;
+    object-fit: contain;
   }
   [part="panel"] {
     display: flex;
@@ -83,9 +91,16 @@ const WIDGET_STYLES = `
     border-bottom: 1px solid var(--local-chat-border-color, #ccc);
   }
   [part="logo"] {
+    display: inline-flex;
+    align-items: center;
     flex-shrink: 0;
     font-size: 1.1em;
     line-height: 1;
+  }
+  [part="logo"] img {
+    width: 1.2em;
+    height: 1.2em;
+    object-fit: contain;
   }
   [part="title"] {
     flex: 1;
@@ -227,6 +242,16 @@ const DEFAULT_INSTRUCTIONS =
 const DEFAULT_LOGO = '💬'
 const DEFAULT_TITLE = 'Local Chat'
 
+const IMAGE_EXTENSION_PATTERN = /\.(png|jpe?g|gif|svg|webp|avif)$/i
+
+function looksLikeImageSource(value: string): boolean {
+  if (value.startsWith('data:image/')) return true
+  if (value.startsWith('//')) return true
+  if (/^https?:\/\//i.test(value)) return true
+  if (value.startsWith('/') || value.startsWith('./') || value.startsWith('../')) return true
+  return IMAGE_EXTENSION_PATTERN.test(value)
+}
+
 function coerceToText(raw: string): string {
   try {
     const parsed: unknown = JSON.parse(raw)
@@ -285,7 +310,7 @@ export class LocalChat extends HTMLElement {
     this.#toggleButton = document.createElement('button')
     this.#toggleButton.setAttribute('part', 'toggle')
     this.#toggleButton.setAttribute('aria-label', 'Open chat')
-    this.#toggleButton.textContent = this.logo
+    this.#renderLogoInto(this.#toggleButton)
     this.#makeDraggable(this.#toggleButton, this.#toggleButton, () => this.#setCollapsed(false))
     this.#root.appendChild(this.#toggleButton)
 
@@ -307,7 +332,7 @@ export class LocalChat extends HTMLElement {
     const headerLogo = document.createElement('span')
     headerLogo.setAttribute('part', 'logo')
     headerLogo.setAttribute('aria-hidden', 'true')
-    headerLogo.textContent = this.logo
+    this.#renderLogoInto(headerLogo)
     header.appendChild(headerLogo)
 
     const titleHeading = document.createElement('span')
@@ -511,6 +536,28 @@ export class LocalChat extends HTMLElement {
   set logo(value: string) {
     this.#logoOverride = value
     this.#hasLogoOverride = true
+  }
+
+  /**
+   * Renders `this.logo` into `el` -- as an <img> if it looks like an image
+   * reference (a data: URI, an absolute/relative URL, or a filename with a
+   * common image extension), matching a host's expectation that a URL-like
+   * logo value renders as an image rather than literal text. Anything else
+   * (typically an emoji) is set as plain text, as before. `el` is used both
+   * decoratively (the toggle button already has its own aria-label, and the
+   * header logo is aria-hidden), so the image gets an empty alt either way.
+   */
+  #renderLogoInto(el: HTMLElement): void {
+    const value = this.logo
+    el.textContent = ''
+    if (looksLikeImageSource(value)) {
+      const img = document.createElement('img')
+      img.src = value
+      img.alt = ''
+      el.appendChild(img)
+    } else {
+      el.textContent = value
+    }
   }
 
   #contextOverride: string | undefined

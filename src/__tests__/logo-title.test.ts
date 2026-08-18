@@ -96,3 +96,44 @@ describe('header logo', () => {
     expect(header.contains(logo)).toBe(true)
   })
 })
+
+describe('logo image/SVG sources', () => {
+  afterEach(() => {
+    document.body.innerHTML = ''
+    delete (globalThis as { LanguageModel?: unknown }).LanguageModel
+  })
+
+  it.each([
+    ['an absolute URL', 'https://example.com/logo.png'],
+    ['a protocol-relative URL', '//example.com/logo.png'],
+    ['a root-relative path', '/assets/logo.svg'],
+    ['a relative path', './logo.webp'],
+    ['a bare filename with an image extension', 'logo.jpg'],
+    ['a data URI', 'data:image/svg+xml;base64,PHN2Zy8+'],
+  ])('renders %s as an <img>, on both the toggle and the header logo', async (_label, src) => {
+    ;(globalThis as { LanguageModel?: unknown }).LanguageModel = mockLanguageModel()
+    const chat = mount()
+    chat.setAttribute('logo', src)
+    await flushMicrotasks()
+
+    const toggle = chat.shadowRoot?.querySelector('[part="toggle"]')
+    const toggleImg = toggle?.querySelector('img')
+    expect(toggleImg?.src).toBe(new URL(src, document.baseURI).href)
+    expect(toggle?.textContent?.trim()).toBe('')
+
+    const headerLogo = chat.shadowRoot?.querySelector('[part="logo"]')
+    const headerImg = headerLogo?.querySelector('img')
+    expect(headerImg?.src).toBe(new URL(src, document.baseURI).href)
+  })
+
+  it('still renders plain text/emoji as text, not an <img>', async () => {
+    ;(globalThis as { LanguageModel?: unknown }).LanguageModel = mockLanguageModel()
+    const chat = mount()
+    chat.setAttribute('logo', '🤖')
+    await flushMicrotasks()
+
+    const toggle = chat.shadowRoot?.querySelector('[part="toggle"]')
+    expect(toggle?.querySelector('img')).toBeNull()
+    expect(toggle?.textContent).toBe('🤖')
+  })
+})

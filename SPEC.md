@@ -65,7 +65,13 @@ override instead of the usual HTML boolean-attribute convention.)
 
 **`logo`** (attribute or property, property wins): overrides the default
 `💬` glyph, used both for the Collapsed toggle button and, in the panel
-header, right before the title heading.
+header, right before the title heading. Plain text/emoji renders as-is;
+a value that looks like an image reference — a `data:image/` URI, an
+absolute/protocol-relative/relative URL, or a filename ending in a common
+image extension (`.png`, `.jpg`/`.jpeg`, `.gif`, `.svg`, `.webp`,
+`.avif`) — renders as an `<img>` instead. SVG is supported as a file
+reference or a `data:image/svg+xml` URI, not as raw inline `<svg>`
+markup, since that would mean parsing/trusting arbitrary HTML.
 
 **`title`**: renders as a heading in the panel header, right after the
 `logo` glyph and before the Clear/Close controls. No custom accessor —
