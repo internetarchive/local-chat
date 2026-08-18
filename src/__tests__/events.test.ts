@@ -13,7 +13,7 @@ describe('Lifecycle events', () => {
     delete (globalThis as { LanguageModel?: unknown }).LanguageModel
   })
 
-  it('dispatches message-sent when the user sends a message', async () => {
+  it('dispatches local-chat-message-sent when the user sends a message', async () => {
     const childSession = createMockSession({ promptStreamingChunks: ['reply'] })
     const parentSession = createMockSession()
     vi.mocked(parentSession.clone).mockResolvedValue(childSession)
@@ -25,7 +25,7 @@ describe('Lifecycle events', () => {
     await flushMicrotasks()
 
     const onMessageSent = vi.fn()
-    chat.addEventListener('message-sent', onMessageSent)
+    chat.addEventListener('local-chat-message-sent', onMessageSent)
 
     sendMessage(chat, 'hello there')
     await flushMicrotasks()
@@ -34,7 +34,7 @@ describe('Lifecycle events', () => {
     expect(firstEventDetail(onMessageSent)).toEqual({ text: 'hello there' })
   })
 
-  it('dispatches response-received with the full rendered text once streaming finishes', async () => {
+  it('dispatches local-chat-response-received with the full rendered text once streaming finishes', async () => {
     const childSession = createMockSession({ promptStreamingChunks: ['Hello ', 'world'] })
     const parentSession = createMockSession()
     vi.mocked(parentSession.clone).mockResolvedValue(childSession)
@@ -46,7 +46,7 @@ describe('Lifecycle events', () => {
     await flushMicrotasks()
 
     const onResponseReceived = vi.fn()
-    chat.addEventListener('response-received', onResponseReceived)
+    chat.addEventListener('local-chat-response-received', onResponseReceived)
 
     sendMessage(chat, 'hi')
     await flushMicrotasks()
@@ -55,7 +55,7 @@ describe('Lifecycle events', () => {
     expect(firstEventDetail(onResponseReceived)).toEqual({ text: 'Hello world' })
   })
 
-  it('dispatches error when generating a response fails', async () => {
+  it('dispatches local-chat-error when generating a response fails', async () => {
     const childSession = createMockSession()
     vi.mocked(childSession.promptStreaming).mockImplementation(() => {
       throw new Error('boom')
@@ -70,7 +70,7 @@ describe('Lifecycle events', () => {
     await flushMicrotasks()
 
     const onError = vi.fn()
-    chat.addEventListener('error', onError)
+    chat.addEventListener('local-chat-error', onError)
 
     sendMessage(chat, 'hi')
     await flushMicrotasks()

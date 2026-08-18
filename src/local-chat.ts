@@ -893,7 +893,7 @@ export class LocalChat extends HTMLElement {
   async #sendMessage(text: string): Promise<void> {
     this.#conversationStarted = true
     this.#supersedeInFlightScratchSessions()
-    this.dispatchEvent(new CustomEvent('message-sent', { detail: { text } }))
+    this.dispatchEvent(new CustomEvent('local-chat-message-sent', { detail: { text } }))
     this.#appendMessageBubble('user', text)
     const bubble = this.#appendMessageBubble('assistant', '')
     try {
@@ -909,12 +909,12 @@ export class LocalChat extends HTMLElement {
         this.#autoScrollTranscript(mutate)
       })
       this.#setStatus(undefined)
-      this.dispatchEvent(new CustomEvent('response-received', { detail: { text: response } }))
+      this.dispatchEvent(new CustomEvent('local-chat-response-received', { detail: { text: response } }))
       appendExchange(this.historyKey, { user: text, assistant: response }, this.maxHistory)
       await this.#generateFollowups(session)
     } catch (error) {
       this.#setStatus(undefined)
-      this.dispatchEvent(new CustomEvent('error', { detail: { error } }))
+      this.dispatchEvent(new CustomEvent('local-chat-error', { detail: { error } }))
     }
   }
 
