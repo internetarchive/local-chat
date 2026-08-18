@@ -14,6 +14,17 @@ export class UnsafeContentError extends Error {}
  * `wrap` is invoked once per chunk, around the DOM mutation that renders it --
  * lets a caller do something (e.g. maintain scroll position) around every
  * incremental update, not just once when `container` was first attached.
+ *
+ * Sanitization runs on `container` itself (the real rendered DOM), in place,
+ * after each write -- not on the raw markdown source text. `streaming-markdown`
+ * never uses innerHTML anywhere, only createElement/createTextNode, so literal
+ * text that happens to look like a tag (e.g. a response mentioning
+ * `<local-chat>`) always ends up as a plain text node, never re-interpreted as
+ * markup -- sanitizing the source string instead would (and did) treat that
+ * text as if it were HTML, misdetecting it as an unrecognized element and
+ * discarding the rest of the response right at that point. The one genuine
+ * residual risk is a markdown link/image whose href/src ends up dangerous
+ * (e.g. a `javascript:` URI); sanitizing the real DOM node still catches that.
  */
 export async function renderMarkdownStream(
   container: HTMLElement,
@@ -32,12 +43,12 @@ export async function renderMarkdownStream(
       const delta = isCumulative ? value.slice(accumulated.length) : value
       accumulated = isCumulative ? value : accumulated + value
 
-      DOMPurify.sanitize(accumulated)
+      wrap(() => smd.parser_write(parser, delta))
+
+      DOMPurify.sanitize(container, { IN_PLACE: true })
       if (DOMPurify.removed.length > 0) {
         throw new UnsafeContentError('Unsafe content removed from model output')
       }
-
-      wrap(() => smd.parser_write(parser, delta))
     }
   } finally {
     smd.parser_end(parser)

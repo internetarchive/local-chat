@@ -37,12 +37,28 @@ describe('renderMarkdownStream', () => {
     expect(result).toBe('one two')
   })
 
-  it('throws UnsafeContentError and stops rendering when unsafe content is detected', async () => {
+  it('throws UnsafeContentError when a real dangerous element/attribute is rendered', async () => {
     const container = document.createElement('div')
 
+    // A markdown image whose src is a javascript: URI -- unlike a literal
+    // "<script>" mention (which streaming-markdown only ever renders as
+    // escaped text, never a real element), this genuinely produces a
+    // dangerous attribute in the rendered DOM.
     await expect(
-      renderMarkdownStream(container, streamOf(['safe text ', '<script>alert(1)</script>'])),
+      renderMarkdownStream(container, streamOf(['![x](', 'javascript:alert(1)', ')'])),
     ).rejects.toThrow(UnsafeContentError)
+  })
+
+  it('does not flag literal text that merely looks like an HTML tag, e.g. mentioning <local-chat>', async () => {
+    const container = document.createElement('div')
+
+    const result = await renderMarkdownStream(
+      container,
+      streamOf(['The `<local-chat>` element ', 'is a self-contained custom element.']),
+    )
+
+    expect(result).toBe('The `<local-chat>` element is a self-contained custom element.')
+    expect(container.textContent).toBe('The <local-chat> element is a self-contained custom element.')
   })
 
   it('wraps each chunk write through the given hook, so a caller can act around every mutation', async () => {
