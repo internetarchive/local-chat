@@ -364,6 +364,7 @@ export class LocalChat extends HTMLElement {
       this.#toggleButton = document.createElement('button')
       this.#toggleButton.setAttribute('part', 'toggle')
       this.#toggleButton.setAttribute('aria-label', 'Open chat')
+      this.#toggleButton.title = this.title || DEFAULT_TITLE
       this.#renderLogoInto(this.#toggleButton)
       this.#makeDraggable(this.#toggleButton, this.#toggleButton, () => this.#setCollapsed(false))
       this.#root.appendChild(this.#toggleButton)
@@ -379,6 +380,13 @@ export class LocalChat extends HTMLElement {
     this.#panel = document.createElement('div')
     this.#panel.setAttribute('part', 'panel')
     this.#panel.tabIndex = -1
+    // Without this, the panel's contents (transcript, input, message bubbles,
+    // etc.) would inherit the host element's own title attribute as their
+    // tooltip on hover -- that lookup crosses the shadow boundary, and none of
+    // them have anything to do with the Widget's title. An explicit empty
+    // title breaks that inheritance; the Clear/Close buttons set their own
+    // more specific title regardless.
+    this.#panel.title = ''
     this.#root.appendChild(this.#panel)
 
     const resizeHandle = document.createElement('div')

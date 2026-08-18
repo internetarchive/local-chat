@@ -73,6 +73,40 @@ describe('title', () => {
     expect(heading?.textContent).toBe('Ask Me Anything')
     expect(chat.getAttribute('title')).toBe('Ask Me Anything')
   })
+
+  it('shows the default title as the toggle button tooltip when unset', async () => {
+    ;(globalThis as { LanguageModel?: unknown }).LanguageModel = mockLanguageModel()
+    const chat = mount()
+    await flushMicrotasks()
+
+    const toggle = chat.shadowRoot?.querySelector('[part="toggle"]')
+    expect(toggle?.getAttribute('title')).toBe('Local Chat')
+  })
+
+  it('shows a custom title as the toggle button tooltip', async () => {
+    ;(globalThis as { LanguageModel?: unknown }).LanguageModel = mockLanguageModel()
+    const chat = mount()
+    chat.setAttribute('title', 'Ask Me Anything')
+    await flushMicrotasks()
+
+    const toggle = chat.shadowRoot?.querySelector('[part="toggle"]')
+    expect(toggle?.getAttribute('title')).toBe('Ask Me Anything')
+  })
+
+  it("does not leak the host's own title tooltip onto the panel's contents", async () => {
+    ;(globalThis as { LanguageModel?: unknown }).LanguageModel = mockLanguageModel()
+    const chat = mount()
+    chat.setAttribute('title', 'Ask Me Anything')
+    await flushMicrotasks()
+
+    // Without an explicit title of its own, the panel would otherwise inherit
+    // the host element's native title attribute for the browser's tooltip
+    // lookup (it crosses the shadow boundary) -- showing "Ask Me Anything" on
+    // hover over the transcript, input, message bubbles, etc., none of which
+    // have anything to do with the Widget's own title.
+    const panel = chat.shadowRoot?.querySelector('[part="panel"]')
+    expect(panel?.getAttribute('title')).toBe('')
+  })
 })
 
 describe('header logo', () => {
