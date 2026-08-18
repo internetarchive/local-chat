@@ -44,13 +44,13 @@ describe('title', () => {
     delete (globalThis as { LanguageModel?: unknown }).LanguageModel
   })
 
-  it('renders no heading when title is unset', async () => {
+  it('defaults to "Local Chat" when title is unset', async () => {
     ;(globalThis as { LanguageModel?: unknown }).LanguageModel = mockLanguageModel()
     const chat = mount()
     await flushMicrotasks()
 
     const heading = chat.shadowRoot?.querySelector('[part="title"]')
-    expect(heading?.textContent).toBe('')
+    expect(heading?.textContent).toBe('Local Chat')
   })
 
   it('renders the title attribute as a heading in the panel header', async () => {
@@ -72,5 +72,27 @@ describe('title', () => {
     const heading = chat.shadowRoot?.querySelector('[part="title"]')
     expect(heading?.textContent).toBe('Ask Me Anything')
     expect(chat.getAttribute('title')).toBe('Ask Me Anything')
+  })
+})
+
+describe('header logo', () => {
+  afterEach(() => {
+    document.body.innerHTML = ''
+    delete (globalThis as { LanguageModel?: unknown }).LanguageModel
+  })
+
+  it('renders the logo in the panel header, right before the title', async () => {
+    ;(globalThis as { LanguageModel?: unknown }).LanguageModel = mockLanguageModel()
+    const chat = mount()
+    chat.setAttribute('logo', '🤖')
+    await flushMicrotasks()
+
+    const header = chat.shadowRoot?.querySelector('[part="panel-header"]')
+    const logo = chat.shadowRoot?.querySelector('[part="logo"]')
+    const title = chat.shadowRoot?.querySelector('[part="title"]')
+    if (!header || !logo || !title) throw new Error('header, logo, or title not found')
+    expect(logo.textContent).toBe('🤖')
+    expect(logo.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(header.contains(logo)).toBe(true)
   })
 })

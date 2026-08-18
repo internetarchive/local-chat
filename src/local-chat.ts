@@ -79,6 +79,11 @@ const WIDGET_STYLES = `
     user-select: none;
     border-bottom: 1px solid var(--local-chat-border-color, #ccc);
   }
+  [part="logo"] {
+    flex-shrink: 0;
+    font-size: 1.1em;
+    line-height: 1;
+  }
   [part="title"] {
     flex: 1;
     min-width: 0;
@@ -211,6 +216,7 @@ const DEFAULT_INSTRUCTIONS =
   "If the context doesn't cover what's being asked, say so plainly instead of guessing."
 
 const DEFAULT_LOGO = '💬'
+const DEFAULT_TITLE = 'Local Chat'
 
 function coerceToText(raw: string): string {
   try {
@@ -289,9 +295,15 @@ export class LocalChat extends HTMLElement {
     this.#panel.appendChild(header)
     this.#makeDraggable(header, this.#panel)
 
+    const headerLogo = document.createElement('span')
+    headerLogo.setAttribute('part', 'logo')
+    headerLogo.setAttribute('aria-hidden', 'true')
+    headerLogo.textContent = this.logo
+    header.appendChild(headerLogo)
+
     const titleHeading = document.createElement('span')
     titleHeading.setAttribute('part', 'title')
-    titleHeading.textContent = this.title
+    titleHeading.textContent = this.title || DEFAULT_TITLE
     header.appendChild(titleHeading)
 
     const clearButton = document.createElement('button')

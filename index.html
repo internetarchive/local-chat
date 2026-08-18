@@ -170,13 +170,14 @@
             </tr>
             <tr>
               <td><code>logo</code></td>
-              <td>Overrides the collapsed toggle button's default 💬 glyph. Also available as a property, which takes priority over the attribute.</td>
+              <td>Overrides the default 💬 glyph, used both for the collapsed toggle button and, in the panel header, right before the title. Also available as a property, which takes priority over the attribute.</td>
             </tr>
             <tr>
               <td><code>title</code></td>
               <td>
-                Renders as a heading in the panel header. This is the native <code>title</code> attribute/property
-                every HTML element already has — no separate accessor needed. No default: unset means no heading.
+                Renders as a heading in the panel header, right after the logo. This is the native <code>title</code>
+                attribute/property every HTML element already has — no separate accessor needed. Defaults to
+                "Local Chat" when unset.
               </td>
             </tr>
           </tbody>
@@ -229,7 +230,7 @@
 
 local-chat::part(panel) {
   /* every part is also addressable directly: toggle, panel, resize-handle,
-     panel-header, title, clear, panel-close, transcript, input-row, input,
+     panel-header, logo, title, clear, panel-close, transcript, input-row, input,
      send, starter(s), icebreaker(s), followup(s), empty-state */
 }</code></pre>
       </section>
