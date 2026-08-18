@@ -60,4 +60,30 @@ describe('Shadow DOM styling', () => {
     expect(style?.textContent).toContain('overflow-x: auto')
     expect(style?.textContent).toContain('var(--local-chat-code-background')
   })
+
+  it('renders inline code (not inside pre) as a real <code> element, styled with the same background variable as code blocks', async () => {
+    // Same jsdom CSS-engine limitation as above -- regression lock on the
+    // rule's presence and the DOM structure; actual computed background is
+    // verified against real Chrome instead.
+    const childSession = createMockSession({ promptStreamingChunks: ['Use `const x = 1` inline.'] })
+    const parentSession = createMockSession()
+    vi.mocked(parentSession.clone).mockResolvedValue(childSession)
+    const LM = mockLanguageModel({ parentSession })
+    ;(globalThis as { LanguageModel?: unknown }).LanguageModel = LM
+    const chat = mount()
+    await flushMicrotasks()
+    expandWidget(chat)
+    await flushMicrotasks()
+
+    sendMessage(chat, 'show me inline code')
+    await flushMicrotasks()
+
+    const code = chat.shadowRoot?.querySelector('[part~="message-assistant"] code')
+    expect(code?.closest('pre')).toBeNull()
+    expect(code?.textContent).toBe('const x = 1')
+
+    const style = chat.shadowRoot?.querySelector('style')
+    expect(style?.textContent).toContain('[part~="message"] code {')
+    expect(style?.textContent).toContain('[part~="message"] pre code {')
+  })
 })

@@ -177,6 +177,21 @@ const WIDGET_STYLES = `
     padding: 0.6em 0.75em;
     border-radius: 0.4em;
   }
+  [part~="message"] code {
+    /* Matches pre's own background -- applying it here too (rather than
+       only to inline code, i.e. code outside pre) is harmless: a pre block's
+       own code child just gets painted the same color on top of pre's
+       already-matching background, with no visible difference. Padding/
+       radius here are for inline code specifically; reset back to 0 for
+       code inside pre just below, since pre already provides its own. */
+    background: var(--local-chat-code-background, #e5e5e5);
+    padding: 0.15em 0.35em;
+    border-radius: 0.25em;
+  }
+  [part~="message"] pre code {
+    padding: 0;
+    border-radius: 0;
+  }
   [part~="message-user"] {
     display: block;
     margin-inline-start: auto;
