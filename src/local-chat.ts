@@ -10,6 +10,29 @@ const WIDGET_STYLES = `
     font-family: system-ui, sans-serif;
     z-index: 2147483000;
   }
+  [part="panel"] {
+    display: flex;
+    flex-direction: column;
+    width: 22rem;
+    height: 28rem;
+    min-width: 16rem;
+    min-height: 12rem;
+    max-width: 90vw;
+    max-height: 90vh;
+    resize: both;
+    overflow: auto;
+    box-sizing: border-box;
+  }
+  [part="transcript"] {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
+  [part="panel-header"] {
+    cursor: move;
+    touch-action: none;
+    user-select: none;
+  }
 `
 
 const DEFAULT_INSTRUCTIONS =
@@ -72,26 +95,31 @@ export class LocalChat extends HTMLElement {
     this.#toggleButton.setAttribute('part', 'toggle')
     this.#toggleButton.setAttribute('aria-label', 'Open chat')
     this.#toggleButton.textContent = '💬'
-    this.#toggleButton.addEventListener('click', () => this.#setCollapsed(false))
+    this.#makeDraggable(this.#toggleButton, () => this.#setCollapsed(false))
     this.#root.appendChild(this.#toggleButton)
 
     this.#panel = document.createElement('div')
     this.#panel.setAttribute('part', 'panel')
     this.#root.appendChild(this.#panel)
 
+    const header = document.createElement('div')
+    header.setAttribute('part', 'panel-header')
+    this.#panel.appendChild(header)
+    this.#makeDraggable(header)
+
     const clearButton = document.createElement('button')
     clearButton.setAttribute('part', 'clear')
     clearButton.setAttribute('aria-label', 'Clear conversation')
     clearButton.textContent = 'Clear'
     clearButton.addEventListener('click', () => this.#clear())
-    this.#panel.appendChild(clearButton)
+    header.appendChild(clearButton)
 
     const closeButton = document.createElement('button')
     closeButton.setAttribute('part', 'panel-close')
     closeButton.setAttribute('aria-label', 'Collapse chat')
     closeButton.textContent = '×'
     closeButton.addEventListener('click', () => this.#setCollapsed(true))
-    this.#panel.appendChild(closeButton)
+    header.appendChild(closeButton)
 
     this.#emptyState = document.createElement('div')
     this.#emptyState.setAttribute('part', 'empty-state')
@@ -129,6 +157,48 @@ export class LocalChat extends HTMLElement {
     if (this.#toggleButton) this.#toggleButton.hidden = !collapsed
     if (this.#panel) this.#panel.hidden = collapsed
     if (!collapsed) void this.#establishParentSession()
+  }
+
+  /**
+   * Lets the user drag `handle` to reposition the whole Widget. If `onClick` is
+   * given, it fires on a genuine click (including a plain synthetic .click()) --
+   * suppressed only when the preceding pointerdown/up sequence moved enough to
+   * count as a drag (used for the toggle button, which needs both behaviors).
+   */
+  #makeDraggable(handle: HTMLElement, onClick?: () => void): void {
+    let dragged = false
+
+    handle.addEventListener('pointerdown', (e) => {
+      dragged = false
+      handle.setPointerCapture(e.pointerId)
+      const startX = e.clientX
+      const startY = e.clientY
+      const rect = this.getBoundingClientRect()
+      const startLeft = rect.left
+      const startTop = rect.top
+
+      const onMove = (moveEvent: PointerEvent) => {
+        const dx = moveEvent.clientX - startX
+        const dy = moveEvent.clientY - startY
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragged = true
+        this.style.left = `${startLeft + dx}px`
+        this.style.top = `${startTop + dy}px`
+        this.style.right = 'auto'
+        this.style.bottom = 'auto'
+      }
+      const onUp = () => {
+        handle.removeEventListener('pointermove', onMove)
+        handle.removeEventListener('pointerup', onUp)
+      }
+      handle.addEventListener('pointermove', onMove)
+      handle.addEventListener('pointerup', onUp)
+    })
+
+    if (onClick) {
+      handle.addEventListener('click', () => {
+        if (!dragged) onClick()
+      })
+    }
   }
 
   #instructionsOverride: string | undefined
@@ -250,8 +320,21 @@ export class LocalChat extends HTMLElement {
     const bubble = document.createElement('div')
     bubble.setAttribute('part', `message message-${role}`)
     bubble.textContent = text
-    this.#transcript?.appendChild(bubble)
+    this.#appendToTranscript(bubble)
     return bubble
+  }
+
+  /**
+   * Appends `el` to the transcript, auto-scrolling to reveal it only if the
+   * user was already scrolled at (or very near) the bottom beforehand --
+   * never yanking them down mid-read or while reviewing earlier messages.
+   */
+  #appendToTranscript(el: HTMLElement): void {
+    const transcript = this.#transcript
+    if (!transcript) return
+    const wasAtBottom = transcript.scrollHeight - transcript.scrollTop - transcript.clientHeight <= 4
+    transcript.appendChild(el)
+    if (wasAtBottom) transcript.scrollTop = transcript.scrollHeight
   }
 
   get maxFollowups(): number {
@@ -338,7 +421,7 @@ export class LocalChat extends HTMLElement {
       container?.remove()
       void this.#sendMessage(text)
     })
-    this.#transcript?.appendChild(container)
+    this.#appendToTranscript(container)
   }
 
   #renderPills(part: string, options: string[], onClick: (text: string) => void): HTMLDivElement {
