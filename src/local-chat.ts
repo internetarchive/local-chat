@@ -354,6 +354,10 @@ export class LocalChat extends HTMLElement {
     this.#panel.appendChild(resizeHandle)
     this.#makeResizable(resizeHandle, this.#panel)
 
+    this.#panel.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') this.#setCollapsed(true)
+    })
+
     const header = document.createElement('div')
     header.setAttribute('part', 'panel-header')
     this.#panel.appendChild(header)

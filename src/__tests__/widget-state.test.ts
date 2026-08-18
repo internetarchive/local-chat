@@ -53,4 +53,32 @@ describe('LocalChat Collapsed/Expanded state', () => {
     expect(panel?.hidden).toBe(false)
     expect(toggle?.hidden).toBe(true)
   })
+
+  it('pressing Escape while focus is inside the panel collapses the Widget', async () => {
+    ;(globalThis as { LanguageModel?: unknown }).LanguageModel = mockLanguageModel()
+    const chat = mount()
+    chat.setAttribute('collapsed', 'false')
+    await flushMicrotasks()
+
+    const input = chat.shadowRoot?.querySelector<HTMLInputElement>('[part="input"]')
+    input?.focus()
+    input?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, composed: true }))
+
+    const panel = chat.shadowRoot?.querySelector<HTMLElement>('[part="panel"]')
+    const toggle = chat.shadowRoot?.querySelector<HTMLElement>('[part="toggle"]')
+    expect(panel?.hidden).toBe(true)
+    expect(toggle?.hidden).toBe(false)
+  })
+
+  it('does not collapse when Escape is pressed outside the panel', async () => {
+    ;(globalThis as { LanguageModel?: unknown }).LanguageModel = mockLanguageModel()
+    const chat = mount()
+    chat.setAttribute('collapsed', 'false')
+    await flushMicrotasks()
+
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+
+    const panel = chat.shadowRoot?.querySelector<HTMLElement>('[part="panel"]')
+    expect(panel?.hidden).toBe(false)
+  })
 })
