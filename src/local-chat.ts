@@ -792,6 +792,17 @@ export class LocalChat extends HTMLElement {
     return Number.isNaN(parsed) || parsed < 0 ? 3 : parsed
   }
 
+  get maxHistory(): number {
+    const raw = this.getAttribute('max-history')
+    if (raw === null) return 5
+    const parsed = Number.parseInt(raw, 10)
+    return Number.isNaN(parsed) || parsed < 0 ? 5 : parsed
+  }
+
+  get historyKey(): string {
+    return this.getAttribute('history-key') ?? 'url'
+  }
+
   #send(): void {
     const text = this.#input?.value.trim() ?? ''
     if (!text) return
