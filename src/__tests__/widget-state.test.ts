@@ -62,7 +62,7 @@ describe('LocalChat Collapsed/Expanded state', () => {
     const toggle = chat.shadowRoot?.querySelector<HTMLButtonElement>('[part="toggle"]')
     toggle?.click()
 
-    const input = chat.shadowRoot?.querySelector<HTMLInputElement>('[part="input"]')
+    const input = chat.shadowRoot?.querySelector<HTMLTextAreaElement>('[part="input"]')
     expect(chat.shadowRoot?.activeElement).toBe(input)
   })
 
@@ -72,7 +72,7 @@ describe('LocalChat Collapsed/Expanded state', () => {
     chat.setAttribute('collapsed', 'false')
     await flushMicrotasks()
 
-    const input = chat.shadowRoot?.querySelector<HTMLInputElement>('[part="input"]')
+    const input = chat.shadowRoot?.querySelector<HTMLTextAreaElement>('[part="input"]')
     input?.focus()
     input?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, composed: true }))
 
@@ -107,7 +107,7 @@ describe('LocalChat Collapsed/Expanded state', () => {
     chat.setAttribute('collapsed', 'false')
     await flushMicrotasks()
 
-    const input = chat.shadowRoot?.querySelector<HTMLInputElement>('[part="input"]')
+    const input = chat.shadowRoot?.querySelector<HTMLTextAreaElement>('[part="input"]')
     input?.focus()
     input?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
 

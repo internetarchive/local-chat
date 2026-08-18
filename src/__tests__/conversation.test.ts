@@ -74,7 +74,7 @@ describe('Sending a message', () => {
 
     sendMessage(chat, 'hello')
 
-    const input = chat.shadowRoot?.querySelector<HTMLInputElement>('[part="input"]')
+    const input = chat.shadowRoot?.querySelector<HTMLTextAreaElement>('[part="input"]')
     expect(input?.value).toBe('')
   })
 

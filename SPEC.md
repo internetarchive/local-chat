@@ -286,6 +286,11 @@ origin's `localStorage`.
   `Thinking…`) and, when the on-device model isn't installed yet, an
   explanatory message plus a download button (see Generation flow, step 1).
   Empty/hidden the rest of the time.
+- The message input supports multiple lines: Enter sends (unchanged),
+  Shift+Enter inserts a newline, and Enter is ignored while an IME
+  composition is in progress (so confirming a candidate doesn't
+  accidentally send). Auto-grows to fit its content up to a max height,
+  scrolling internally beyond that; resets back down after sending.
 
 ## Implementation defaults (not separately grilled — flagging, not asking)
 

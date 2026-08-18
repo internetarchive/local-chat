@@ -21,7 +21,7 @@ export function collapseWidget(chat: LocalChat): void {
 }
 
 export function sendMessage(chat: LocalChat, text: string): void {
-  const input = chat.shadowRoot?.querySelector<HTMLInputElement>('[part="input"]')
+  const input = chat.shadowRoot?.querySelector<HTMLTextAreaElement>('[part="input"]')
   if (!input) throw new Error('input not found')
   input.value = text
   input.dispatchEvent(new Event('input', { bubbles: true }))

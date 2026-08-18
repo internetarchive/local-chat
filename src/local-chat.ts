@@ -243,18 +243,23 @@ const WIDGET_STYLES = `
   }
   [part="input-row"] {
     display: flex;
+    align-items: flex-end;
     gap: 0.4em;
     padding: 0.5em;
     border-top: 1px solid var(--local-chat-border-color, #ccc);
   }
   [part="input"] {
     flex: 1;
+    box-sizing: border-box;
     border: 1px solid var(--local-chat-border-color, #ccc);
     border-radius: 0.3em;
     padding: 0.4em 0.6em;
     font: inherit;
     color: inherit;
     background: var(--local-chat-background, #fff);
+    resize: none;
+    max-height: 8em;
+    overflow-y: auto;
   }
   [part="send"] {
     border: none;
@@ -310,7 +315,7 @@ export class LocalChat extends HTMLElement {
   #panel: HTMLDivElement | undefined
   #transcript: HTMLDivElement | undefined
   #emptyState: HTMLDivElement | undefined
-  #input: HTMLInputElement | undefined
+  #input: HTMLTextAreaElement | undefined
   #statusEl: HTMLDivElement | undefined
   #statusText: HTMLSpanElement | undefined
   #statusDownloadButton: HTMLButtonElement | undefined
@@ -377,7 +382,7 @@ export class LocalChat extends HTMLElement {
     // lands elsewhere, and that previously-focused element shouldn't count
     // as "focus already landed on something more specific" for this click.
     this.#panel.addEventListener('click', (e) => {
-      if ((e.target as HTMLElement).closest('button, input')) return
+      if ((e.target as HTMLElement).closest('button, input, textarea')) return
       this.#panel?.focus()
     })
 
@@ -438,13 +443,17 @@ export class LocalChat extends HTMLElement {
     inputRow.setAttribute('part', 'input-row')
     this.#panel.appendChild(inputRow)
 
-    this.#input = document.createElement('input')
+    this.#input = document.createElement('textarea')
     this.#input.setAttribute('part', 'input')
-    this.#input.type = 'text'
+    this.#input.rows = 1
     this.#input.setAttribute('aria-label', 'Message')
     this.#input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') this.#send()
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+        e.preventDefault()
+        this.#send()
+      }
     })
+    this.#input.addEventListener('input', () => this.#autoGrowInput())
     inputRow.appendChild(this.#input)
 
     const sendButton = document.createElement('button')
@@ -913,7 +922,15 @@ export class LocalChat extends HTMLElement {
     const text = this.#input?.value.trim() ?? ''
     if (!text) return
     if (this.#input) this.#input.value = ''
+    this.#autoGrowInput()
     this.#submitText(text)
+  }
+
+  /** Grows the input to fit its content, up to the CSS max-height, beyond which it scrolls internally. */
+  #autoGrowInput(): void {
+    if (!this.#input) return
+    this.#input.style.height = 'auto'
+    this.#input.style.height = `${this.#input.scrollHeight}px`
   }
 
   #clear(): void {
