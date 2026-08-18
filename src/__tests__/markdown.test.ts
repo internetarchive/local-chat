@@ -44,4 +44,17 @@ describe('renderMarkdownStream', () => {
       renderMarkdownStream(container, streamOf(['safe text ', '<script>alert(1)</script>'])),
     ).rejects.toThrow(UnsafeContentError)
   })
+
+  it('wraps each chunk write through the given hook, so a caller can act around every mutation', async () => {
+    const container = document.createElement('div')
+    let wrapCalls = 0
+
+    await renderMarkdownStream(container, streamOf(['one ', 'two ', 'three']), (mutate) => {
+      wrapCalls += 1
+      mutate()
+    })
+
+    expect(wrapCalls).toBe(3)
+    expect(container.textContent).toBe('one two three')
+  })
 })

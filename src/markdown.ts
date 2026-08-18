@@ -10,8 +10,16 @@ export class UnsafeContentError extends Error {}
  * incremental deltas) isn't asserted here -- each chunk is checked against
  * what's already been accumulated to tell which it is, rather than assuming
  * one or the other.
+ *
+ * `wrap` is invoked once per chunk, around the DOM mutation that renders it --
+ * lets a caller do something (e.g. maintain scroll position) around every
+ * incremental update, not just once when `container` was first attached.
  */
-export async function renderMarkdownStream(container: HTMLElement, stream: ReadableStream<string>): Promise<string> {
+export async function renderMarkdownStream(
+  container: HTMLElement,
+  stream: ReadableStream<string>,
+  wrap: (mutate: () => void) => void = (mutate) => mutate(),
+): Promise<string> {
   const renderer = smd.default_renderer(container)
   const parser = smd.parser(renderer)
   let accumulated = ''
@@ -29,7 +37,7 @@ export async function renderMarkdownStream(container: HTMLElement, stream: Reada
         throw new UnsafeContentError('Unsafe content removed from model output')
       }
 
-      smd.parser_write(parser, delta)
+      wrap(() => smd.parser_write(parser, delta))
     }
   } finally {
     smd.parser_end(parser)

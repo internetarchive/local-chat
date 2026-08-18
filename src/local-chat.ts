@@ -438,10 +438,24 @@ export class LocalChat extends HTMLElement {
    * never yanking them down mid-read or while reviewing earlier messages.
    */
   #appendToTranscript(el: HTMLElement): void {
+    this.#autoScrollTranscript(() => this.#transcript?.appendChild(el))
+  }
+
+  /**
+   * Runs `mutate`, auto-scrolling the transcript to the bottom afterward only
+   * if the user was already at (or very near) the bottom beforehand. Used for
+   * every transcript-growing change, including each individual streamed chunk
+   * -- not just the one-time append of a (possibly still-empty) bubble --
+   * since content keeps growing well after that initial append.
+   */
+  #autoScrollTranscript(mutate: () => void): void {
     const transcript = this.#transcript
-    if (!transcript) return
+    if (!transcript) {
+      mutate()
+      return
+    }
     const wasAtBottom = transcript.scrollHeight - transcript.scrollTop - transcript.clientHeight <= 4
-    transcript.appendChild(el)
+    mutate()
     if (wasAtBottom) transcript.scrollTop = transcript.scrollHeight
   }
 
@@ -493,7 +507,7 @@ export class LocalChat extends HTMLElement {
     try {
       const session = await this.#getOrForkChildSession()
       const stream = session.promptStreaming(text, {})
-      const response = await renderMarkdownStream(bubble, stream)
+      const response = await renderMarkdownStream(bubble, stream, (mutate) => this.#autoScrollTranscript(mutate))
       this.dispatchEvent(new CustomEvent('response-received', { detail: { text: response } }))
       await this.#generateFollowups(session)
     } catch (error) {
