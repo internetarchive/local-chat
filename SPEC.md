@@ -63,6 +63,17 @@ instead. (A plain presence/absence boolean attribute can't express "the
 default, with nothing set, is the true state" — hence the explicit-string
 override instead of the usual HTML boolean-attribute convention.)
 
+**`logo`** (attribute or property, property wins): overrides the
+Collapsed toggle button's default `💬` glyph.
+
+**`title`**: renders as a heading in the panel header, to the left of the
+Clear/Close controls. No custom accessor — `title` is already a native
+reflected `HTMLElement` property/attribute, so reading it picks up
+whichever was set (attribute or JS property assignment) without shadowing
+the built-in tooltip behavior a host might also rely on. No default: a
+host that doesn't set one gets no heading, consistent with this being a
+fully white-labelable widget rather than a branded product.
+
 ## Generation flow
 
 1. On first Expand (not on page load, so an instance nobody ever opens

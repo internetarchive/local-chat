@@ -63,6 +63,7 @@ const WIDGET_STYLES = `
   }
   [part="panel-header"] {
     display: flex;
+    align-items: center;
     justify-content: flex-end;
     gap: 0.4em;
     padding: 0.5em;
@@ -70,6 +71,14 @@ const WIDGET_STYLES = `
     touch-action: none;
     user-select: none;
     border-bottom: 1px solid var(--local-chat-border-color, #ccc);
+  }
+  [part="title"] {
+    flex: 1;
+    min-width: 0;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   [part="clear"],
   [part="panel-close"] {
@@ -157,6 +166,8 @@ const DEFAULT_INSTRUCTIONS =
   'You are a helpful assistant. Answer the question using only the provided context. ' +
   "If the context doesn't cover what's being asked, say so plainly instead of guessing."
 
+const DEFAULT_LOGO = '💬'
+
 function coerceToText(raw: string): string {
   try {
     const parsed: unknown = JSON.parse(raw)
@@ -212,7 +223,7 @@ export class LocalChat extends HTMLElement {
     this.#toggleButton = document.createElement('button')
     this.#toggleButton.setAttribute('part', 'toggle')
     this.#toggleButton.setAttribute('aria-label', 'Open chat')
-    this.#toggleButton.textContent = '💬'
+    this.#toggleButton.textContent = this.logo
     this.#makeDraggable(this.#toggleButton, () => this.#setCollapsed(false))
     this.#root.appendChild(this.#toggleButton)
 
@@ -230,6 +241,11 @@ export class LocalChat extends HTMLElement {
     header.setAttribute('part', 'panel-header')
     this.#panel.appendChild(header)
     this.#makeDraggable(header)
+
+    const titleHeading = document.createElement('span')
+    titleHeading.setAttribute('part', 'title')
+    titleHeading.textContent = this.title
+    header.appendChild(titleHeading)
 
     const clearButton = document.createElement('button')
     clearButton.setAttribute('part', 'clear')
@@ -371,6 +387,19 @@ export class LocalChat extends HTMLElement {
   set instructions(value: string) {
     this.#instructionsOverride = value
     this.#hasInstructionsOverride = true
+  }
+
+  #logoOverride: string | undefined
+  #hasLogoOverride = false
+
+  get logo(): string {
+    if (this.#hasLogoOverride && this.#logoOverride !== undefined) return this.#logoOverride
+    return this.getAttribute('logo') ?? DEFAULT_LOGO
+  }
+
+  set logo(value: string) {
+    this.#logoOverride = value
+    this.#hasLogoOverride = true
   }
 
   #contextOverride: string | undefined
