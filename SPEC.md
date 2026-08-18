@@ -204,6 +204,15 @@ origin's `localStorage`.
    area shows an explanatory message and a download button, and nothing
    is created until the user explicitly clicks it, with progress reported
    in the same status area as it downloads.
+
+   Every `availability()`/`create()` call passes matching
+   `expectedInputs`/`expectedOutputs` options (`{ type: "text", languages:
+   [...] }`) — the Prompt API otherwise warns that it can't attest
+   output-safety for an unspecified language, and passing mismatched
+   options to the two calls is explicitly discouraged upstream. The
+   language comes from `document.documentElement.lang` (first subtag,
+   lowercased), falling back to `en` when unset or not currently one of
+   the model's supported languages (`de`, `en`, `es`, `fr`, `ja`).
 2. Once priming completes: any host-provided `starters` are shown
    immediately in the empty Conversation view. If `icebreakers` is set
    (and `max-followups` is not `0`), a non-streaming call on a Scratch

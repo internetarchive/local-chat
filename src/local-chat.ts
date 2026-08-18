@@ -279,6 +279,24 @@ const DEFAULT_TITLE = 'Local Chat'
 
 const IMAGE_EXTENSION_PATTERN = /\.(png|jpe?g|gif|svg|webp|avif)$/i
 
+const SUPPORTED_MODEL_LANGUAGES = ['de', 'en', 'es', 'fr', 'ja']
+
+function detectModelLanguage(): string {
+  const lang = document.documentElement.lang.split('-')[0]?.toLowerCase()
+  return lang && SUPPORTED_MODEL_LANGUAGES.includes(lang) ? lang : 'en'
+}
+
+function languageModelOptions(): {
+  expectedInputs: Array<{ type: 'text'; languages: string[] }>
+  expectedOutputs: Array<{ type: 'text'; languages: string[] }>
+} {
+  const languages = [detectModelLanguage()]
+  return {
+    expectedInputs: [{ type: 'text', languages }],
+    expectedOutputs: [{ type: 'text', languages }],
+  }
+}
+
 function looksLikeImageSource(value: string): boolean {
   if (value.startsWith('data:image/')) return true
   if (value.startsWith('//')) return true
@@ -332,7 +350,7 @@ export class LocalChat extends HTMLElement {
   async #checkAvailabilityAndRender(): Promise<void> {
     const LM = getLanguageModel()
     if (!LM) return
-    const availability = await LM.availability()
+    const availability = await LM.availability(languageModelOptions())
     if (availability === 'unavailable') return
     this.#renderWidget()
   }
@@ -748,7 +766,7 @@ export class LocalChat extends HTMLElement {
     const LM = getLanguageModel()
     if (!LM) throw new Error('LanguageModel is not available')
 
-    const availability = await LM.availability()
+    const availability = await LM.availability(languageModelOptions())
     const session =
       availability === 'downloadable'
         ? await this.#createSessionAfterUserConsent(LM)
@@ -783,6 +801,7 @@ export class LocalChat extends HTMLElement {
     const initialPrompts: LanguageModelMessage[] = [{ role: 'system', content: this.instructions }]
     return LM.create({
       initialPrompts,
+      ...languageModelOptions(),
       monitor: onProgress ? (monitor) => monitor.addEventListener('downloadprogress', (e) => onProgress(e.loaded)) : undefined,
     })
   }
