@@ -70,7 +70,10 @@ describe('renderMarkdownStream', () => {
       mutate()
     })
 
-    expect(wrapCalls).toBe(3)
+    // One call per chunk, plus one more for the final parser_end flush --
+    // streaming-markdown can flush still-pending buffered content there (a
+    // real DOM mutation), so it needs the same wrap coverage as every chunk.
+    expect(wrapCalls).toBe(4)
     expect(container.textContent).toBe('one two three')
   })
 })

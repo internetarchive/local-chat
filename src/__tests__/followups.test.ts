@@ -38,6 +38,34 @@ describe('Follow-ups', () => {
     })
   })
 
+  it('prompts for context-answerable follow-ups and permits fewer/zero rather than force-filling', async () => {
+    const { scratchSession } = setUpChat()
+    const chat = mount()
+    await flushMicrotasks()
+    expandWidget(chat)
+    await flushMicrotasks()
+
+    sendMessage(chat, 'hello')
+    await flushMicrotasks()
+
+    const prompt = vi.mocked(scratchSession.prompt).mock.calls[0]?.[0]
+    expect(prompt).toContain('context')
+    expect(prompt?.toLowerCase()).toMatch(/fewer|empty|zero/)
+  })
+
+  it('renders no pills container at all when Follow-up generation returns an empty array', async () => {
+    setUpChat('[]')
+    const chat = mount()
+    await flushMicrotasks()
+    expandWidget(chat)
+    await flushMicrotasks()
+
+    sendMessage(chat, 'hello')
+    await flushMicrotasks()
+
+    expect(chat.shadowRoot?.querySelector('[part="followups"]')).toBeNull()
+  })
+
   it('renders Follow-ups as clickable pills', async () => {
     setUpChat('["What about X?", "And Y?"]')
     const chat = mount()

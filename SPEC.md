@@ -101,6 +101,13 @@ also rely on. Defaults to `"Local Chat"` when unset.
    them. Icebreakers are cached for the Parent Session's lifetime, not
    regenerated per Conversation. Rendered on first Expand, or immediately
    if priming already finished before the user expanded the Widget.
+   `max-followups` is a cap, not a quota: the prompt explicitly permits
+   (and for Icebreakers, steers toward) fewer than that many, including
+   none, rather than force-filling to the limit — and explicitly excludes
+   meta questions about the assistant itself (what it can do, how it
+   works), asking only for questions the Context can actually answer. No
+   pills container renders at all when a generation call resolves to zero
+   suggestions.
 3. Sending the first message (typed, or a clicked Starter/Icebreaker)
    forks a Child Session from the Parent Session.
 4. Each user message is sent via a streaming call on the Child Session, no
@@ -109,8 +116,10 @@ also rely on. Defaults to `"Local Chat"` when unset.
 5. Once the streamed response finishes, if `max-followups` is not `0`: a
    non-streaming call on a Scratch Session cloned from the Child Session,
    constrained to a JSON array of up to `max-followups` strings, generates
-   Follow-ups. Rendered as clickable pills below the response; clicking
-   one sends it as the next message immediately. Kept as a separate,
+   Follow-ups the Context can actually answer (see step 2's note on
+   fewer-than-the-cap being expected, not force-filled). Rendered as
+   clickable pills below the response; clicking one sends it as the next
+   message immediately. Kept as a separate,
    small, fast call on its own Scratch Session rather than folded into the
    streamed response or run directly on the Child Session, since a
    structural output constraint would force the entire streamed response

@@ -603,7 +603,9 @@ export class LocalChat extends HTMLElement {
   }
 
   #renderStarters(): void {
-    const container = this.#renderPills('starter', this.starters, (text) => this.#submitText(text))
+    const starters = this.starters
+    if (starters.length === 0) return
+    const container = this.#renderPills('starter', starters, (text) => this.#submitText(text))
     this.#emptyState?.appendChild(container)
   }
 
@@ -700,7 +702,11 @@ export class LocalChat extends HTMLElement {
     this.#currentIcebreakerScratch = scratch
     const options = await this.#requestSuggestions(
       scratch,
-      `Suggest up to ${max} brief opening questions a user might want to ask, based on the available context.`,
+      `Suggest up to ${max} brief opening questions a visitor could ask about the subject matter in the reference ` +
+        `context above -- questions that context can actually answer. Do not suggest questions about this chat ` +
+        `assistant itself (what it can do, how it works, its capabilities, etc.) -- only questions about the topic ` +
+        `the context covers. If the context doesn't clearly support at least one good, specific question, return ` +
+        `fewer than ${max}, or an empty array -- do not invent generic filler questions just to reach ${max}.`,
       max,
     )
     if (this.#currentIcebreakerScratch !== scratch) return // Superseded while awaiting.
@@ -715,7 +721,7 @@ export class LocalChat extends HTMLElement {
     // #supersedeInFlightScratchSessions only catches generation already in
     // flight at send-time, so this is the last line of defense against
     // rendering into an empty state nobody is looking at anymore.
-    if (this.#conversationStarted || !this.#icebreakerOptions) return
+    if (this.#conversationStarted || !this.#icebreakerOptions || this.#icebreakerOptions.length === 0) return
     const container = this.#renderPills('icebreaker', this.#icebreakerOptions, (text) => this.#submitText(text))
     this.#emptyState?.appendChild(container)
   }
@@ -841,7 +847,10 @@ export class LocalChat extends HTMLElement {
     this.#currentFollowupScratch = scratch
     const options = await this.#requestSuggestions(
       scratch,
-      `Suggest up to ${max} brief follow-up questions the user might want to ask next, based on the conversation so far.`,
+      `Suggest up to ${max} brief follow-up questions the user might want to ask next, based on the conversation so ` +
+        `far -- but only questions that can actually be answered using the reference context provided earlier in ` +
+        `this conversation. If the context doesn't support a good, relevant follow-up, return fewer than ${max}, or ` +
+        `an empty array -- do not invent questions the context can't answer just to reach ${max}.`,
       max,
     )
     if (this.#currentFollowupScratch !== scratch) return // Superseded while awaiting.
@@ -862,6 +871,7 @@ export class LocalChat extends HTMLElement {
   }
 
   #renderFollowups(options: string[]): void {
+    if (options.length === 0) return
     const container = this.#renderPills('followup', options, (text) => {
       container?.remove()
       void this.#sendMessage(text)

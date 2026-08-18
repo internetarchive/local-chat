@@ -14,6 +14,10 @@ export class UnsafeContentError extends Error {}
  * `wrap` is invoked once per chunk, around the DOM mutation that renders it --
  * lets a caller do something (e.g. maintain scroll position) around every
  * incremental update, not just once when `container` was first attached.
+ * Also wraps the final `parser_end` call: streaming-markdown flushes any
+ * still-pending buffered content there (a real DOM mutation), so leaving it
+ * unwrapped would let the response's last bit of growth slip past whatever
+ * `wrap` is tracking.
  *
  * Sanitization runs on `container` itself (the real rendered DOM), in place,
  * after each write -- not on the raw markdown source text. `streaming-markdown`
@@ -51,7 +55,7 @@ export async function renderMarkdownStream(
       }
     }
   } finally {
-    smd.parser_end(parser)
+    wrap(() => smd.parser_end(parser))
   }
   return accumulated
 }

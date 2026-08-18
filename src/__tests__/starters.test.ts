@@ -15,6 +15,14 @@ describe('Starters', () => {
     expect(chat.shadowRoot?.querySelectorAll('[part="starter"]')).toHaveLength(0)
   })
 
+  it('renders no pills container at all when starters is unset', async () => {
+    ;(globalThis as { LanguageModel?: unknown }).LanguageModel = mockLanguageModel()
+    const chat = mount()
+    await flushMicrotasks()
+
+    expect(chat.shadowRoot?.querySelector('[part="starters"]')).toBeNull()
+  })
+
   it('renders a single plain-string starter as one pill', async () => {
     ;(globalThis as { LanguageModel?: unknown }).LanguageModel = mockLanguageModel()
     const chat = mount()

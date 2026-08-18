@@ -40,6 +40,31 @@ describe('Icebreakers', () => {
     expect(options?.responseConstraint).toMatchObject({ type: 'array', items: { type: 'string' }, maxItems: 3 })
   })
 
+  it('prompts for context-answerable questions, not meta questions about the assistant, and permits fewer/zero', async () => {
+    const { scratchSession } = setUpChat()
+    const chat = mount()
+    chat.setAttribute('icebreakers', '')
+    await flushMicrotasks()
+    expandWidget(chat)
+    await flushMicrotasks()
+
+    const prompt = vi.mocked(scratchSession.prompt).mock.calls[0]?.[0]
+    expect(prompt).toContain('context')
+    expect(prompt?.toLowerCase()).toMatch(/assistant|chatbot|chat widget|itself/)
+    expect(prompt?.toLowerCase()).toMatch(/fewer|empty|zero/)
+  })
+
+  it('renders no pills container at all when Icebreaker generation returns an empty array', async () => {
+    setUpChat('[]')
+    const chat = mount()
+    chat.setAttribute('icebreakers', '')
+    await flushMicrotasks()
+    expandWidget(chat)
+    await flushMicrotasks()
+
+    expect(chat.shadowRoot?.querySelector('[part="icebreakers"]')).toBeNull()
+  })
+
   it('renders Icebreakers as clickable pills in the empty Conversation view', async () => {
     setUpChat('["Q1?", "Q2?"]')
     const chat = mount()
