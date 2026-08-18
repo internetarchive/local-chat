@@ -205,15 +205,20 @@ export class LocalChat extends HTMLElement {
     return session
   }
 
+  #currentIcebreakerScratch: LanguageModelSession | undefined
+
   async #generateIcebreakers(parentSession: LanguageModelSession): Promise<void> {
     const max = this.maxFollowups
     if (max === 0) return
     const scratch = await parentSession.clone()
+    this.#currentIcebreakerScratch = scratch
     const options = await this.#requestSuggestions(
       scratch,
       `Suggest up to ${max} brief opening questions a user might want to ask, based on the available context.`,
       max,
     )
+    if (this.#currentIcebreakerScratch !== scratch) return // Superseded while awaiting.
+    this.#currentIcebreakerScratch = undefined
     const container = this.#renderPills('icebreaker', options, (text) => this.#submitText(text))
     this.#emptyState?.appendChild(container)
   }
@@ -254,7 +259,19 @@ export class LocalChat extends HTMLElement {
     void this.#sendMessage(text)
   }
 
+  #supersedeInFlightScratchSessions(): void {
+    if (this.#currentFollowupScratch) {
+      this.#currentFollowupScratch.destroy()
+      this.#currentFollowupScratch = undefined
+    }
+    if (this.#currentIcebreakerScratch) {
+      this.#currentIcebreakerScratch.destroy()
+      this.#currentIcebreakerScratch = undefined
+    }
+  }
+
   async #sendMessage(text: string): Promise<void> {
+    this.#supersedeInFlightScratchSessions()
     this.#appendMessageBubble('user', text)
     const bubble = this.#appendMessageBubble('assistant', '')
     const session = await this.#getOrForkChildSession()
