@@ -79,6 +79,13 @@ export class LocalChat extends HTMLElement {
     this.#panel.setAttribute('part', 'panel')
     this.#root.appendChild(this.#panel)
 
+    const clearButton = document.createElement('button')
+    clearButton.setAttribute('part', 'clear')
+    clearButton.setAttribute('aria-label', 'Clear conversation')
+    clearButton.textContent = 'Clear'
+    clearButton.addEventListener('click', () => this.#clear())
+    this.#panel.appendChild(clearButton)
+
     const closeButton = document.createElement('button')
     closeButton.setAttribute('part', 'panel-close')
     closeButton.setAttribute('aria-label', 'Collapse chat')
@@ -206,6 +213,7 @@ export class LocalChat extends HTMLElement {
   }
 
   #currentIcebreakerScratch: LanguageModelSession | undefined
+  #icebreakerOptions: string[] | undefined
 
   async #generateIcebreakers(parentSession: LanguageModelSession): Promise<void> {
     const max = this.maxFollowups
@@ -219,7 +227,13 @@ export class LocalChat extends HTMLElement {
     )
     if (this.#currentIcebreakerScratch !== scratch) return // Superseded while awaiting.
     this.#currentIcebreakerScratch = undefined
-    const container = this.#renderPills('icebreaker', options, (text) => this.#submitText(text))
+    this.#icebreakerOptions = options
+    this.#renderIcebreakers()
+  }
+
+  #renderIcebreakers(): void {
+    if (!this.#icebreakerOptions) return
+    const container = this.#renderPills('icebreaker', this.#icebreakerOptions, (text) => this.#submitText(text))
     this.#emptyState?.appendChild(container)
   }
 
@@ -252,6 +266,16 @@ export class LocalChat extends HTMLElement {
     if (!text) return
     if (this.#input) this.#input.value = ''
     this.#submitText(text)
+  }
+
+  #clear(): void {
+    this.#supersedeInFlightScratchSessions()
+    void this.#childSessionPromise?.then((session) => session.destroy())
+    this.#childSessionPromise = undefined
+    if (this.#transcript) this.#transcript.innerHTML = ''
+    if (this.#emptyState) this.#emptyState.innerHTML = ''
+    this.#renderStarters()
+    this.#renderIcebreakers()
   }
 
   #submitText(text: string): void {
