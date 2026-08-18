@@ -55,8 +55,13 @@ but prompted explicitly as opening questions grounded in Context rather
 than a reply to a prior response. Has no effect if `max-followups` is
 `0`, since that's what governs how many get generated either way.
 
-**`collapsed`** (attribute, boolean): the Widget's initial visibility
-state. Present → starts Collapsed (the default). Absent → starts Expanded.
+**`collapsed`** (attribute): the Widget's initial visibility state.
+Defaults to Collapsed — this is what happens whether the attribute is
+absent, present with no value, or set to anything other than the literal
+string `"false"`. Set `collapsed="false"` explicitly to start Expanded
+instead. (A plain presence/absence boolean attribute can't express "the
+default, with nothing set, is the true state" — hence the explicit-string
+override instead of the usual HTML boolean-attribute convention.)
 
 ## Generation flow
 
