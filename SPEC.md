@@ -198,7 +198,7 @@ origin's `localStorage`.
    never pays any setup cost), the Parent Session is created: primed with
    `instructions` (default or host-provided) plus the combined Context
    (`context-selector` extraction and/or `context`). A status message
-   (`Loading…` / `Downloading the model…`) shows in the status area while
+   (`Starting the chat…` / `Downloading the model…`) shows in the status area while
    this is in flight. If the on-device model isn't installed yet, creating
    a session would trigger its download immediately — instead, the status
    area shows an explanatory message and a download button, and nothing
@@ -282,7 +282,7 @@ origin's `localStorage`.
   undisturbed, so a long response or reviewing earlier messages is never
   interrupted by a sudden jump.
 - A small status line sits between the transcript and the input row,
-  showing brief system messages (`Loading…`, `Downloading the model…`,
+  showing brief system messages (`Starting the chat…`, `Downloading the model…`,
   `Thinking…`) and, when the on-device model isn't installed yet, an
   explanatory message plus a download button (see Generation flow, step 1).
   Empty/hidden the rest of the time.

@@ -743,7 +743,7 @@ export class LocalChat extends HTMLElement {
     const session =
       availability === 'downloadable'
         ? await this.#createSessionAfterUserConsent(LM)
-        : await this.#createSessionShowingStatus(LM, availability === 'downloading' ? 'Downloading the model…' : 'Loading…')
+        : await this.#createSessionShowingStatus(LM, availability === 'downloading' ? 'Downloading the model…' : 'Starting the chat…')
 
     const contextText = this.#combinedContext()
     if (contextText) {

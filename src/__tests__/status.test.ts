@@ -16,7 +16,7 @@ describe('Status bar', () => {
     delete (globalThis as { LanguageModel?: unknown }).LanguageModel
   })
 
-  it('shows "Loading…" while the Parent Session is being established, clearing once ready', async () => {
+  it('shows "Starting the chat…" while the Parent Session is being established, clearing once ready', async () => {
     const createDeferred = deferred<LanguageModelSession>()
     const LM: LanguageModelAPI = {
       availability: vi.fn().mockResolvedValue('available'),
@@ -30,7 +30,7 @@ describe('Status bar', () => {
 
     const status = chat.shadowRoot?.querySelector<HTMLElement>('[part="status"]')
     expect(status?.hidden).toBe(false)
-    expect(status?.textContent).toContain('Loading')
+    expect(status?.textContent).toContain('Starting the chat')
 
     createDeferred.resolve(createMockSession())
     await flushMicrotasks()
