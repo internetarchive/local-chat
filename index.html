@@ -198,6 +198,18 @@
               </td>
             </tr>
             <tr>
+              <td><code>trigger-selector</code></td>
+              <td>
+                A CSS selector. Every matching element (queried once, at render time) becomes a trigger — clicking it
+                toggles the widget open/closed, the same as calling <code>toggle()</code>. Useful for invoking the
+                widget from your own existing button instead of the floating toggle.
+              </td>
+            </tr>
+            <tr>
+              <td><code>hide-toggle</code></td>
+              <td>Boolean. Hides the built-in floating toggle button — useful alongside <code>trigger-selector</code> or the methods below, if you want only your own trigger.</td>
+            </tr>
+            <tr>
               <td><code>logo</code></td>
               <td>
                 Overrides the default 💬 glyph, used both for the collapsed toggle button and, in the panel header,
@@ -214,6 +226,32 @@
                 attribute/property every HTML element already has — no separate accessor needed. Defaults to
                 "Local Chat" when unset.
               </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="methods">
+        <h2>Methods</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>expand()</code></td>
+              <td>Expands the widget (a no-op if already expanded). Call this from your own trigger element's click handler.</td>
+            </tr>
+            <tr>
+              <td><code>collapse()</code></td>
+              <td>Collapses the widget (a no-op if already collapsed).</td>
+            </tr>
+            <tr>
+              <td><code>toggle()</code></td>
+              <td>Expands if collapsed, collapses if expanded. This is what <code>trigger-selector</code> wires up automatically.</td>
             </tr>
           </tbody>
         </table>
@@ -240,6 +278,14 @@
             <tr>
               <td><code>local-chat-error</code></td>
               <td><code>{ error }</code> — dispatched if generating a response fails.</td>
+            </tr>
+            <tr>
+              <td><code>local-chat-expanded</code></td>
+              <td>Dispatched when the widget transitions to expanded, however it was triggered.</td>
+            </tr>
+            <tr>
+              <td><code>local-chat-collapsed</code></td>
+              <td>Dispatched when the widget transitions to collapsed, however it was triggered.</td>
             </tr>
           </tbody>
         </table>

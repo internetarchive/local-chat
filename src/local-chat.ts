@@ -337,12 +337,21 @@ export class LocalChat extends HTMLElement {
     style.textContent = WIDGET_STYLES
     this.#root.appendChild(style)
 
-    this.#toggleButton = document.createElement('button')
-    this.#toggleButton.setAttribute('part', 'toggle')
-    this.#toggleButton.setAttribute('aria-label', 'Open chat')
-    this.#renderLogoInto(this.#toggleButton)
-    this.#makeDraggable(this.#toggleButton, this.#toggleButton, () => this.#setCollapsed(false))
-    this.#root.appendChild(this.#toggleButton)
+    if (!this.hasAttribute('hide-toggle')) {
+      this.#toggleButton = document.createElement('button')
+      this.#toggleButton.setAttribute('part', 'toggle')
+      this.#toggleButton.setAttribute('aria-label', 'Open chat')
+      this.#renderLogoInto(this.#toggleButton)
+      this.#makeDraggable(this.#toggleButton, this.#toggleButton, () => this.#setCollapsed(false))
+      this.#root.appendChild(this.#toggleButton)
+    }
+
+    const triggerSelector = this.getAttribute('trigger-selector')
+    if (triggerSelector) {
+      for (const trigger of document.querySelectorAll(triggerSelector)) {
+        trigger.addEventListener('click', () => this.toggle())
+      }
+    }
 
     this.#panel = document.createElement('div')
     this.#panel.setAttribute('part', 'panel')
@@ -448,13 +457,39 @@ export class LocalChat extends HTMLElement {
     this.#setCollapsed(this.getAttribute('collapsed') !== 'false')
   }
 
+  /** Expands the Widget (a no-op if already Expanded). See CONTEXT.md's Trigger entry. */
+  expand(): void {
+    this.#setCollapsed(false)
+  }
+
+  /** Collapses the Widget (a no-op if already Collapsed). */
+  collapse(): void {
+    this.#setCollapsed(true)
+  }
+
+  /** Expands if Collapsed, Collapses if Expanded. */
+  toggle(): void {
+    this.#setCollapsed(!(this.#collapsedState ?? true))
+  }
+
+  #collapsedState: boolean | undefined
+
   #setCollapsed(collapsed: boolean): void {
+    const wasCollapsed = this.#collapsedState
+    if (wasCollapsed === collapsed) return
+    this.#collapsedState = collapsed
     if (this.#toggleButton) this.#toggleButton.hidden = !collapsed
     if (this.#panel) this.#panel.hidden = collapsed
     if (!collapsed) {
       this.#restoreHistoryIfNeeded()
       void this.#establishParentSession()
       this.#input?.focus()
+    }
+    // Only a genuine transition dispatches -- not the initial state
+    // established at render time, which isn't something happening in
+    // response to anything a host needs to react to.
+    if (wasCollapsed !== undefined) {
+      this.dispatchEvent(new CustomEvent(collapsed ? 'local-chat-collapsed' : 'local-chat-expanded'))
     }
   }
 
