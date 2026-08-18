@@ -331,7 +331,53 @@ export class LocalChat extends HTMLElement {
   #setCollapsed(collapsed: boolean): void {
     if (this.#toggleButton) this.#toggleButton.hidden = !collapsed
     if (this.#panel) this.#panel.hidden = collapsed
+    // The box just switched to a very differently-sized child (the small toggle
+    // vs. the much larger panel) -- an anchor offset that was safe for the
+    // previous child isn't necessarily safe for this one (e.g. a bottom offset
+    // clamped only against the toggle's height could still push the taller
+    // panel's top off-screen). Re-clamp against whichever child is visible now.
+    this.#repositionWithinViewport()
     if (!collapsed) void this.#establishParentSession()
+  }
+
+  /**
+   * Positions the Widget at (`left`, `top`) for a box of the given size,
+   * clamped so it stays fully within the viewport, then anchors each axis
+   * toward whichever edge it ends up nearer to (rather than always top-left)
+   * -- so the box grows away from the edge it's close to when Collapsed/
+   * Expanded swaps in a much larger or smaller child, and later transitions
+   * land back in the same corner/quadrant instead of jumping to top-left.
+   */
+  #anchorClamped(left: number, top: number, width: number, height: number): void {
+    const clampedLeft = Math.min(Math.max(left, 0), Math.max(0, window.innerWidth - width))
+    const clampedTop = Math.min(Math.max(top, 0), Math.max(0, window.innerHeight - height))
+
+    if (clampedLeft + width / 2 < window.innerWidth / 2) {
+      this.style.left = `${clampedLeft}px`
+      this.style.right = 'auto'
+    } else {
+      this.style.right = `${window.innerWidth - (clampedLeft + width)}px`
+      this.style.left = 'auto'
+    }
+    if (clampedTop + height / 2 < window.innerHeight / 2) {
+      this.style.top = `${clampedTop}px`
+      this.style.bottom = 'auto'
+    } else {
+      this.style.bottom = `${window.innerHeight - (clampedTop + height)}px`
+      this.style.top = 'auto'
+    }
+  }
+
+  /**
+   * Re-clamps the Widget's current position against whichever child (toggle
+   * or panel) is visible right now. A no-op until the first drag -- before
+   * that, the default CSS inset-based anchor is already safe.
+   */
+  #repositionWithinViewport(): void {
+    const everDragged = this.style.left !== '' || this.style.right !== '' || this.style.top !== '' || this.style.bottom !== ''
+    if (!everDragged) return
+    const rect = this.getBoundingClientRect()
+    this.#anchorClamped(rect.left, rect.top, rect.width, rect.height)
   }
 
   /**
@@ -361,30 +407,7 @@ export class LocalChat extends HTMLElement {
         const dx = moveEvent.clientX - startX
         const dy = moveEvent.clientY - startY
         if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragged = true
-
-        const newLeft = startLeft + dx
-        const newTop = startTop + dy
-
-        // Anchor each axis toward whichever edge the Widget is currently nearer
-        // to, rather than always the top-left -- so the box grows away from the
-        // edge it's close to (staying on-screen when Collapsed<->Expanded swaps
-        // in a much larger or smaller child), and Collapsing/Expanding later
-        // lands back in the same corner/quadrant instead of jumping to whatever
-        // the last drag happened to set.
-        if (newLeft + rect.width / 2 < window.innerWidth / 2) {
-          this.style.left = `${newLeft}px`
-          this.style.right = 'auto'
-        } else {
-          this.style.right = `${window.innerWidth - (newLeft + rect.width)}px`
-          this.style.left = 'auto'
-        }
-        if (newTop + rect.height / 2 < window.innerHeight / 2) {
-          this.style.top = `${newTop}px`
-          this.style.bottom = 'auto'
-        } else {
-          this.style.bottom = `${window.innerHeight - (newTop + rect.height)}px`
-          this.style.top = 'auto'
-        }
+        this.#anchorClamped(startLeft + dx, startTop + dy, rect.width, rect.height)
       }
       const onUp = () => {
         window.removeEventListener('pointermove', onMove)
