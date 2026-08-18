@@ -31,15 +31,11 @@ export function sendMessage(chat: LocalChat, text: string): void {
 export interface MockSessionOptions {
   promptResponse?: string
   promptStreamingChunks?: string[]
-  promptError?: Error
 }
 
 export function createMockSession(options: MockSessionOptions = {}): LanguageModelSession {
   const session: LanguageModelSession = {
-    prompt: vi.fn(async () => {
-      if (options.promptError) throw options.promptError
-      return options.promptResponse ?? ''
-    }),
+    prompt: vi.fn(async () => options.promptResponse ?? ''),
     promptStreaming: vi.fn(() => {
       const chunks = options.promptStreamingChunks ?? []
       return new ReadableStream<string>({

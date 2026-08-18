@@ -658,29 +658,25 @@ export class LocalChat extends HTMLElement {
   }
 
   #instructionsOverride: string | undefined
-  #hasInstructionsOverride = false
 
   get instructions(): string {
-    if (this.#hasInstructionsOverride && this.#instructionsOverride !== undefined) return this.#instructionsOverride
+    if (this.#instructionsOverride !== undefined) return this.#instructionsOverride
     return this.getAttribute('instructions') ?? DEFAULT_INSTRUCTIONS
   }
 
   set instructions(value: string) {
     this.#instructionsOverride = value
-    this.#hasInstructionsOverride = true
   }
 
   #logoOverride: string | undefined
-  #hasLogoOverride = false
 
   get logo(): string {
-    if (this.#hasLogoOverride && this.#logoOverride !== undefined) return this.#logoOverride
+    if (this.#logoOverride !== undefined) return this.#logoOverride
     return this.getAttribute('logo') ?? DEFAULT_LOGO
   }
 
   set logo(value: string) {
     this.#logoOverride = value
-    this.#hasLogoOverride = true
   }
 
   /**
@@ -706,31 +702,27 @@ export class LocalChat extends HTMLElement {
   }
 
   #contextOverride: string | undefined
-  #hasContextOverride = false
 
   get context(): string {
-    if (this.#hasContextOverride && this.#contextOverride !== undefined) return this.#contextOverride
+    if (this.#contextOverride !== undefined) return this.#contextOverride
     const attr = this.getAttribute('context')
     return attr === null ? '' : coerceToText(attr)
   }
 
   set context(value: string) {
     this.#contextOverride = value
-    this.#hasContextOverride = true
   }
 
   #startersOverride: string | undefined
-  #hasStartersOverride = false
 
   get starters(): string[] {
-    if (this.#hasStartersOverride && this.#startersOverride !== undefined) return coerceToList(this.#startersOverride)
+    if (this.#startersOverride !== undefined) return coerceToList(this.#startersOverride)
     const attr = this.getAttribute('starters')
     return attr === null ? [] : coerceToList(attr)
   }
 
   set starters(value: string) {
     this.#startersOverride = value
-    this.#hasStartersOverride = true
   }
 
   #renderStarters(): void {
