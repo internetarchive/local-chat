@@ -115,6 +115,18 @@ const WIDGET_STYLES = `
     border-radius: 0.7em;
     overflow-wrap: break-word;
   }
+  [part~="message"] > :first-child {
+    /* The markdown renderer wraps content in block elements (p, ul, ...)
+       that carry their own UA-default margin -- left in place, that stacks
+       on top of this bubble's own padding, making assistant replies look
+       more padded than the plain-text user bubble. Only the outer edges are
+       collapsed here; margins between multiple blocks in one reply (e.g.
+       two paragraphs) are left alone. */
+    margin-top: 0;
+  }
+  [part~="message"] > :last-child {
+    margin-bottom: 0;
+  }
   [part~="message-user"] {
     display: block;
     margin-inline-start: auto;

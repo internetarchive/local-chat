@@ -16,4 +16,18 @@ describe('Shadow DOM styling', () => {
     expect(style).not.toBeNull()
     expect(style?.textContent).toContain('var(--local-chat-')
   })
+
+  it('collapses the outer margin of markdown-rendered block content in a message bubble', async () => {
+    // jsdom doesn't apply the UA-default <p> margin this rule exists to
+    // collapse, so a computed-style assertion here can't actually
+    // discriminate -- this is a regression lock on the rule's presence.
+    // Real spacing is verified against real Chrome instead.
+    ;(globalThis as { LanguageModel?: unknown }).LanguageModel = mockLanguageModel()
+    const chat = mount()
+    await flushMicrotasks()
+
+    const style = chat.shadowRoot?.querySelector('style')
+    expect(style?.textContent).toContain('[part~="message"] > :first-child')
+    expect(style?.textContent).toContain('[part~="message"] > :last-child')
+  })
 })
