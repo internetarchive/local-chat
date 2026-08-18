@@ -1,3 +1,5 @@
+import { afterEach } from 'vitest'
+
 // vitest's jsdom environment fails to expose a working `localStorage` global
 // on Node 26+ (its own experimental native `localStorage` global appears to
 // shadow vitest's attempt to proxy jsdom's own, working implementation onto
@@ -15,3 +17,12 @@ if (jsdomGlobal) {
     configurable: true,
   })
 }
+
+// Every test file shares one jsdom/localStorage instance across its own
+// `it` blocks (isolation is per-file, not per-test) -- persisted History
+// writes now a real side effect of sending a message, so without this, an
+// Exchange written in one test would leak into and change the behavior of
+// another later test in the same file that also expands the widget.
+afterEach(() => {
+  localStorage.clear()
+})

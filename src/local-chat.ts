@@ -1,4 +1,4 @@
-import { type Exchange, readHistory } from './history.js'
+import { appendExchange, type Exchange, readHistory } from './history.js'
 import { getLanguageModel, type LanguageModelAPI, type LanguageModelMessage, type LanguageModelSession } from './language-model.js'
 import { renderCompleteMarkdown, renderMarkdownStream } from './markdown.js'
 
@@ -909,6 +909,7 @@ export class LocalChat extends HTMLElement {
       })
       this.#setStatus(undefined)
       this.dispatchEvent(new CustomEvent('response-received', { detail: { text: response } }))
+      appendExchange(this.historyKey, { user: text, assistant: response }, this.maxHistory)
       await this.#generateFollowups(session)
     } catch (error) {
       this.#setStatus(undefined)
