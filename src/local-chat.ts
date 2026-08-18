@@ -1,4 +1,5 @@
 import { getLanguageModel, type LanguageModelMessage, type LanguageModelSession } from './language-model.js'
+import { renderMarkdownStream } from './markdown.js'
 
 const WIDGET_STYLES = `
   :host {
@@ -30,6 +31,8 @@ export class LocalChat extends HTMLElement {
   #root: ShadowRoot
   #toggleButton: HTMLButtonElement | undefined
   #panel: HTMLDivElement | undefined
+  #transcript: HTMLDivElement | undefined
+  #input: HTMLInputElement | undefined
 
   constructor() {
     super()
@@ -70,6 +73,30 @@ export class LocalChat extends HTMLElement {
     closeButton.textContent = '×'
     closeButton.addEventListener('click', () => this.#setCollapsed(true))
     this.#panel.appendChild(closeButton)
+
+    this.#transcript = document.createElement('div')
+    this.#transcript.setAttribute('part', 'transcript')
+    this.#panel.appendChild(this.#transcript)
+
+    const inputRow = document.createElement('div')
+    inputRow.setAttribute('part', 'input-row')
+    this.#panel.appendChild(inputRow)
+
+    this.#input = document.createElement('input')
+    this.#input.setAttribute('part', 'input')
+    this.#input.type = 'text'
+    this.#input.setAttribute('aria-label', 'Message')
+    this.#input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') this.#send()
+    })
+    inputRow.appendChild(this.#input)
+
+    const sendButton = document.createElement('button')
+    sendButton.setAttribute('part', 'send')
+    sendButton.setAttribute('aria-label', 'Send')
+    sendButton.textContent = '➤'
+    sendButton.addEventListener('click', () => this.#send())
+    inputRow.appendChild(sendButton)
 
     this.#setCollapsed(this.getAttribute('collapsed') !== 'false')
   }
@@ -139,6 +166,38 @@ export class LocalChat extends HTMLElement {
       await session.append([{ role: 'user', content: `Reference context:\n\n${contextText}` }])
     }
     return session
+  }
+
+  #childSessionPromise: Promise<LanguageModelSession> | undefined
+
+  #getOrForkChildSession(): Promise<LanguageModelSession> {
+    if (!this.#childSessionPromise) {
+      this.#childSessionPromise = this.#establishParentSession().then((parent) => parent.clone())
+    }
+    return this.#childSessionPromise
+  }
+
+  #appendMessageBubble(role: 'user' | 'assistant', text: string): HTMLElement {
+    const bubble = document.createElement('div')
+    bubble.setAttribute('part', `message message-${role}`)
+    bubble.textContent = text
+    this.#transcript?.appendChild(bubble)
+    return bubble
+  }
+
+  #send(): void {
+    const text = this.#input?.value.trim() ?? ''
+    if (!text) return
+    if (this.#input) this.#input.value = ''
+    void this.#sendMessage(text)
+  }
+
+  async #sendMessage(text: string): Promise<void> {
+    this.#appendMessageBubble('user', text)
+    const bubble = this.#appendMessageBubble('assistant', '')
+    const session = await this.#getOrForkChildSession()
+    const stream = session.promptStreaming(text, {})
+    await renderMarkdownStream(bubble, stream)
   }
 }
 

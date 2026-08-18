@@ -20,6 +20,14 @@ export function collapseWidget(chat: LocalChat): void {
   chat.shadowRoot?.querySelector<HTMLButtonElement>('[part="panel-close"]')?.click()
 }
 
+export function sendMessage(chat: LocalChat, text: string): void {
+  const input = chat.shadowRoot?.querySelector<HTMLInputElement>('[part="input"]')
+  if (!input) throw new Error('input not found')
+  input.value = text
+  input.dispatchEvent(new Event('input', { bubbles: true }))
+  chat.shadowRoot?.querySelector<HTMLButtonElement>('[part="send"]')?.click()
+}
+
 export interface MockSessionOptions {
   promptResponse?: string
   promptStreamingChunks?: string[]
