@@ -115,6 +115,13 @@ const WIDGET_STYLES = `
     border-radius: 0.7em;
     overflow-wrap: break-word;
   }
+  [part~="message"]:empty {
+    /* The assistant bubble is appended empty, before any content has
+       streamed in -- and could stay empty if the response genuinely turns
+       out that way. Either way, an empty bubble is just a stray padded box
+       with nothing in it, so it stays hidden until it actually has content. */
+    display: none;
+  }
   [part~="message"] > :first-child {
     /* The markdown renderer wraps content in block elements (p, ul, ...)
        that carry their own UA-default margin -- left in place, that stacks
