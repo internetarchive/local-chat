@@ -79,7 +79,13 @@ fully white-labelable widget rather than a branded product.
 1. On first Expand (not on page load, so an instance nobody ever opens
    never pays any setup cost), the Parent Session is created: primed with
    `instructions` (default or host-provided) plus the combined Context
-   (`context-selector` extraction and/or `context`).
+   (`context-selector` extraction and/or `context`). A status message
+   (`Loading…` / `Downloading the model…`) shows in the status area while
+   this is in flight. If the on-device model isn't installed yet, creating
+   a session would trigger its download immediately — instead, the status
+   area shows an explanatory message and a download button, and nothing
+   is created until the user explicitly clicks it, with progress reported
+   in the same status area as it downloads.
 2. Once priming completes: any host-provided `starters` are shown
    immediately in the empty Conversation view. If `icebreakers` is set
    (and `max-followups` is not `0`), a non-streaming call on a Scratch
@@ -144,6 +150,11 @@ fully white-labelable widget rather than a branded product.
   bottom of the transcript — otherwise their scroll position is left
   undisturbed, so a long response or reviewing earlier messages is never
   interrupted by a sudden jump.
+- A small status line sits between the transcript and the input row,
+  showing brief system messages (`Loading…`, `Downloading the model…`,
+  `Thinking…`) and, when the on-device model isn't installed yet, an
+  explanatory message plus a download button (see Generation flow, step 1).
+  Empty/hidden the rest of the time.
 
 ## Implementation defaults (not separately grilled — flagging, not asking)
 

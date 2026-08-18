@@ -20,10 +20,19 @@ export interface LanguageModelSession {
   destroy(): void
 }
 
+export interface LanguageModelDownloadProgressEvent {
+  loaded: number
+}
+
+export interface LanguageModelCreateMonitor {
+  addEventListener(type: 'downloadprogress', listener: (event: LanguageModelDownloadProgressEvent) => void): void
+}
+
 export interface LanguageModelCreateOptions {
   initialPrompts?: LanguageModelMessage[]
   expectedInputs?: Array<{ type: 'text'; languages: string[] }>
   expectedOutputs?: Array<{ type: 'text'; languages: string[] }>
+  monitor?: (monitor: LanguageModelCreateMonitor) => void
   signal?: AbortSignal
 }
 

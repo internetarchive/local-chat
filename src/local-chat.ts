@@ -1,4 +1,4 @@
-import { getLanguageModel, type LanguageModelMessage, type LanguageModelSession } from './language-model.js'
+import { getLanguageModel, type LanguageModelAPI, type LanguageModelMessage, type LanguageModelSession } from './language-model.js'
 import { renderMarkdownStream } from './markdown.js'
 
 const WIDGET_STYLES = `
@@ -138,6 +138,24 @@ const WIDGET_STYLES = `
     font-size: 0.85em;
     text-align: start;
   }
+  [part="status"] {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.4em 0.6em;
+    font-size: 0.8em;
+    color: var(--local-chat-status-color, #777);
+    border-top: 1px solid var(--local-chat-border-color, #ccc);
+  }
+  [part="status-download"] {
+    flex-shrink: 0;
+    border: 1px solid var(--local-chat-accent, #2563eb);
+    background: none;
+    color: var(--local-chat-accent, #2563eb);
+    border-radius: 0.3em;
+    padding: 0.15em 0.5em;
+    font: inherit;
+  }
   [part="input-row"] {
     display: flex;
     gap: 0.4em;
@@ -197,6 +215,9 @@ export class LocalChat extends HTMLElement {
   #transcript: HTMLDivElement | undefined
   #emptyState: HTMLDivElement | undefined
   #input: HTMLInputElement | undefined
+  #statusEl: HTMLDivElement | undefined
+  #statusText: HTMLSpanElement | undefined
+  #statusDownloadButton: HTMLButtonElement | undefined
 
   constructor() {
     super()
@@ -271,6 +292,18 @@ export class LocalChat extends HTMLElement {
     this.#transcript = document.createElement('div')
     this.#transcript.setAttribute('part', 'transcript')
     this.#panel.appendChild(this.#transcript)
+
+    this.#statusEl = document.createElement('div')
+    this.#statusEl.setAttribute('part', 'status')
+    this.#statusEl.hidden = true
+    this.#statusText = document.createElement('span')
+    this.#statusEl.appendChild(this.#statusText)
+    this.#statusDownloadButton = document.createElement('button')
+    this.#statusDownloadButton.setAttribute('part', 'status-download')
+    this.#statusDownloadButton.textContent = 'Download model'
+    this.#statusDownloadButton.hidden = true
+    this.#statusEl.appendChild(this.#statusDownloadButton)
+    this.#panel.appendChild(this.#statusEl)
 
     const inputRow = document.createElement('div')
     inputRow.setAttribute('part', 'input-row')
@@ -460,14 +493,61 @@ export class LocalChat extends HTMLElement {
   async #createParentSession(): Promise<LanguageModelSession> {
     const LM = getLanguageModel()
     if (!LM) throw new Error('LanguageModel is not available')
-    const initialPrompts: LanguageModelMessage[] = [{ role: 'system', content: this.instructions }]
-    const session = await LM.create({ initialPrompts })
+
+    const availability = await LM.availability()
+    const session =
+      availability === 'downloadable'
+        ? await this.#createSessionAfterUserConsent(LM)
+        : await this.#createSessionShowingStatus(LM, availability === 'downloading' ? 'Downloading the model…' : 'Loading…')
+
     const contextText = this.#combinedContext()
     if (contextText) {
       await session.append([{ role: 'user', content: `Reference context:\n\n${contextText}` }])
     }
     if (this.hasAttribute('icebreakers')) void this.#generateIcebreakers(session)
     return session
+  }
+
+  #createSession(LM: LanguageModelAPI, onProgress?: (fraction: number) => void): Promise<LanguageModelSession> {
+    const initialPrompts: LanguageModelMessage[] = [{ role: 'system', content: this.instructions }]
+    return LM.create({
+      initialPrompts,
+      monitor: onProgress ? (monitor) => monitor.addEventListener('downloadprogress', (e) => onProgress(e.loaded)) : undefined,
+    })
+  }
+
+  async #createSessionShowingStatus(LM: LanguageModelAPI, message: string): Promise<LanguageModelSession> {
+    this.#setStatus(message)
+    const session = await this.#createSession(LM)
+    this.#setStatus(undefined)
+    return session
+  }
+
+  /**
+   * The on-device model isn't installed yet -- calling create() would trigger
+   * a (potentially large, one-time) download immediately, so this waits for an
+   * explicit click on the status area's download button instead of doing that
+   * automatically just because the Widget was expanded.
+   */
+  #createSessionAfterUserConsent(LM: LanguageModelAPI): Promise<LanguageModelSession> {
+    return new Promise((resolve, reject) => {
+      this.#setStatus("This chat runs entirely on your device, but the on-device model isn't installed yet.", () => {
+        this.#setStatus('Downloading the model…')
+        this.#createSession(LM, (fraction) => this.#setStatus(`Downloading the model… ${Math.round(fraction * 100)}%`))
+          .then((session) => {
+            this.#setStatus(undefined)
+            resolve(session)
+          }, reject)
+      })
+    })
+  }
+
+  #setStatus(message: string | undefined, onDownload?: () => void): void {
+    if (!this.#statusEl || !this.#statusText || !this.#statusDownloadButton) return
+    this.#statusEl.hidden = message === undefined
+    this.#statusText.textContent = message ?? ''
+    this.#statusDownloadButton.hidden = !onDownload
+    this.#statusDownloadButton.onclick = onDownload ?? null
   }
 
   #currentIcebreakerScratch: LanguageModelSession | undefined
@@ -586,11 +666,21 @@ export class LocalChat extends HTMLElement {
     const bubble = this.#appendMessageBubble('assistant', '')
     try {
       const session = await this.#getOrForkChildSession()
+      this.#setStatus('Thinking…')
       const stream = session.promptStreaming(text, {})
-      const response = await renderMarkdownStream(bubble, stream, (mutate) => this.#autoScrollTranscript(mutate))
+      let firstChunk = true
+      const response = await renderMarkdownStream(bubble, stream, (mutate) => {
+        if (firstChunk) {
+          this.#setStatus(undefined)
+          firstChunk = false
+        }
+        this.#autoScrollTranscript(mutate)
+      })
+      this.#setStatus(undefined)
       this.dispatchEvent(new CustomEvent('response-received', { detail: { text: response } }))
       await this.#generateFollowups(session)
     } catch (error) {
+      this.#setStatus(undefined)
       this.dispatchEvent(new CustomEvent('error', { detail: { error } }))
     }
   }
