@@ -16,6 +16,19 @@ DOM theming via `--local-chat-*` custom properties. Requires a Chrome
 build with the on-device Prompt API (`window.LanguageModel`) available;
 the component is a no-op everywhere else.
 
+## Installation
+
+```sh
+npm install @internetarchive/local-chat
+```
+
+```js
+import '@internetarchive/local-chat'
+```
+
+Importing the module is enough: it registers `<local-chat>` as a custom
+element as a side effect. There's nothing to call to initialize it.
+
 ## Development
 
 ```sh

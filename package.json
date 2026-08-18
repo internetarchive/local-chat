@@ -1,6 +1,6 @@
 {
   "name": "@internetarchive/local-chat",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "A floating, resizable chat widget powered entirely by Chrome's on-device AI, grounded in context you provide.",
   "type": "module",
   "license": "AGPL-3.0-or-later",
@@ -9,6 +9,7 @@
     "type": "git",
     "url": "git+https://github.com/internetarchive/local-chat.git"
   },
+  "homepage": "https://internetarchive.github.io/local-chat/",
   "publishConfig": {
     "access": "public"
   },
