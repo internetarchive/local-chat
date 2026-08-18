@@ -74,6 +74,9 @@ const WIDGET_STYLES = `
     justify-content: flex-end;
     gap: 0.4em;
     padding: 0.5em;
+    /* Extra clearance so the logo doesn't touch the resize handle, which sits
+       independently positioned at the panel's top-left corner. */
+    padding-inline-start: 1.5rem;
     cursor: move;
     touch-action: none;
     user-select: none;
@@ -94,11 +97,17 @@ const WIDGET_STYLES = `
   }
   [part="clear"],
   [part="panel-close"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.8em;
+    height: 1.8em;
+    overflow: hidden;
     border: 1px solid var(--local-chat-border-color, #ccc);
     background: none;
     color: inherit;
     border-radius: 0.3em;
-    padding: 0.2em 0.6em;
+    padding: 0;
   }
   [part="empty-state"]:empty {
     display: none;
