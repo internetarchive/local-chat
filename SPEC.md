@@ -106,6 +106,25 @@ keywords above are reserved — a custom key that happens to match one of
 them is interpreted as the keyword, not a verbatim string; pick a
 different literal value if that collides with something you need.
 
+**`trigger-selector`** (attribute): a CSS selector. Every matching element
+becomes a Trigger — clicking it toggles the Widget, the same as calling
+`toggle()` on it (see Triggers). Queried once, at the same point in the
+lifecycle as `context-selector`: elements must already exist in the DOM by
+the time `<local-chat>` connects. A Trigger inserted later (e.g. an SPA
+rendering it after the fact) isn't picked up — use the public methods
+instead for that case.
+
+**`hide-toggle`** (attribute, boolean): when present, the built-in floating
+toggle button is never rendered. Independent of `trigger-selector`/the
+public methods — a host relying entirely on its own Trigger(s) can hide
+the default one.
+
+**`expand()`**, **`collapse()`**, **`toggle()`** (methods): the primitive
+that `trigger-selector` itself is built on, directly usable by a host
+wiring its own element's click handler in plain JS — works regardless of
+where that element lives (including inside another shadow root, which a
+CSS selector can't reach) or when it's inserted into the DOM.
+
 ## History
 
 Stored in `localStorage` (see ADR-0006), internally namespaced under a
@@ -148,6 +167,30 @@ origin's `localStorage`.
    storage, unparseable or incompatible data from a prior format version —
    is treated identically to no History existing at all; it never
    surfaces as an error or breaks the Widget.
+
+## Triggers
+
+1. The built-in floating toggle button Expands the Widget when Collapsed
+   (unchanged from before this feature); it's hidden once Expanded, and
+   entirely absent if `hide-toggle` is set.
+2. A `trigger-selector` match, or a host calling `toggle()` directly, is a
+   full toggle rather than open-only — Collapsing the Widget again if it's
+   already Expanded. This differs from the built-in toggle button
+   deliberately: that button disappears the moment the panel Expands, so
+   it never needs to resolve what a second click on it would mean, but a
+   host's own Trigger element normally stays visible and clickable the
+   whole time, and doing nothing on a second click would read as broken.
+3. `local-chat-expanded`/`local-chat-collapsed` events dispatch on every
+   transition, regardless of what caused it (the built-in toggle, a
+   Trigger, or a direct method call) — letting a host sync its own
+   Trigger's state (`aria-expanded`, active styling, whatever it needs).
+   The Widget deliberately never mutates a Trigger element's own
+   attributes itself: it doesn't own that element, and doing so risks
+   fighting other event handling or state management (e.g. a UI library's
+   own component) the host already has on it.
+4. The panel always renders at its own independently-tracked position (see
+   ADR-0004) — Expanding via a Trigger never anchors or repositions the
+   panel near that element, the same as Expanding via the built-in toggle.
 
 ## Generation flow
 
@@ -255,9 +298,20 @@ origin's `localStorage`.
 - **Styling**: Shadow DOM with CSS custom properties + `::part()` for
   host theming, matching standard web-component practice.
 - **Observability**: dispatches basic lifecycle events (message sent,
-  response received, error) even though full headless/custom-UI mode is
-  deferred — costs nothing to include and gives hosts a hook without
-  committing to a stable custom-rendering contract yet.
+  response received, error, expanded, collapsed) even though full
+  headless/custom-UI mode is deferred — costs nothing to include and gives
+  hosts a hook without committing to a stable custom-rendering contract
+  yet.
+- **`trigger-selector` query timing**: queried once, matching
+  `context-selector`'s existing precedent, rather than kept live with a
+  `MutationObserver` — simpler and consistent with the rest of the API; a
+  Trigger inserted into the DOM later needs the public methods instead.
+  Revisit only if that turns out not to be enough in practice.
+- **No automatic Trigger attribute management**: `local-chat-expanded`/
+  `local-chat-collapsed` are the only mechanism for a Trigger to reflect
+  Widget state — the Widget itself never sets `aria-expanded` or anything
+  else on a Trigger element it doesn't own, since that risks fighting
+  other event handling or state management already on it.
 - **History format versioning**: the persisted JSON carries a
   schema-version marker, so a future format change can detect and discard
   incompatible old data (treated as "no History," per the History section)

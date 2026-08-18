@@ -99,3 +99,10 @@ The floating UI as a whole: an icon/button when Collapsed, a full panel
 
 **Collapsed** / **Expanded**:
 The Widget's two visibility states.
+
+**Trigger**:
+A host-provided element, external to the Widget, that Expands/Collapses it
+— wired via `trigger-selector` or the `expand()`/`collapse()`/`toggle()`
+methods. Distinct from the Widget's own built-in toggle button, which isn't
+a Trigger itself.
+_Avoid_: Launcher, invoker
