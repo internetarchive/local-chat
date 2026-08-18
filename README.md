@@ -1,5 +1,8 @@
 # Local Chat
 
+**[Try it live →](https://internetarchive.github.io/local-chat/)** (docs and
+a live demo, served straight from this repo's `main` branch)
+
 `<local-chat>` is a floating, resizable chat widget powered entirely by
 Chrome's built-in on-device AI, grounded in context you provide.
 
