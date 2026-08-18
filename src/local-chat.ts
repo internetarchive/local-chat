@@ -185,7 +185,7 @@ const WIDGET_STYLES = `
        radius here are for inline code specifically; reset back to 0 for
        code inside pre just below, since pre already provides its own. */
     background: var(--local-chat-code-background, #e5e5e5);
-    padding: 0.15em 0.35em;
+    padding: 0 0.15em;
     border-radius: 0.25em;
   }
   [part~="message"] pre code {
