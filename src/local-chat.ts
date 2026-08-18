@@ -234,13 +234,15 @@ export class LocalChat extends HTMLElement {
     const clearButton = document.createElement('button')
     clearButton.setAttribute('part', 'clear')
     clearButton.setAttribute('aria-label', 'Clear conversation')
-    clearButton.textContent = 'Clear'
+    clearButton.title = 'Clear conversation'
+    clearButton.textContent = '🗑️'
     clearButton.addEventListener('click', () => this.#clear())
     header.appendChild(clearButton)
 
     const closeButton = document.createElement('button')
     closeButton.setAttribute('part', 'panel-close')
     closeButton.setAttribute('aria-label', 'Collapse chat')
+    closeButton.title = 'Collapse chat'
     closeButton.textContent = '×'
     closeButton.addEventListener('click', () => this.#setCollapsed(true))
     header.appendChild(closeButton)
