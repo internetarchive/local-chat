@@ -140,9 +140,13 @@ fully white-labelable widget rather than a branded product.
 
 - Default state: Collapsed, a floating icon/button, bottom-right corner
   with sensible margin from the viewport edges.
-- The user can drag the Widget to reposition it and resize the Expanded
-  panel.
-- A host can override the initial position via plain CSS.
+- The user can drag the collapsed icon and the Expanded panel to
+  reposition them, and resize the Expanded panel. The icon and panel each
+  track their own dragged position independently (see ADR-0004) — moving
+  one never affects the other, and either can be dragged fully outside
+  the viewport if the user does that.
+- A host can override the initial position via plain CSS (targeting
+  `::part(toggle)`/`::part(panel)`).
 - The Expanded panel includes a Clear control, resetting the Conversation
   per the Clear behavior above.
 - Auto-scroll only fires for new content (a new message, or Follow-up

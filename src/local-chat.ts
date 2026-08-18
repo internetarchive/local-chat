@@ -4,12 +4,8 @@ import { renderMarkdownStream } from './markdown.js'
 const WIDGET_STYLES = `
   :host {
     all: initial;
-    position: fixed;
-    inset-inline-end: 1.5rem;
-    inset-block-end: 1.5rem;
     font-family: var(--local-chat-font-family, system-ui, sans-serif);
     font-size: var(--local-chat-font-size, 0.9rem);
-    z-index: 2147483000;
   }
   button {
     font: inherit;
@@ -22,6 +18,18 @@ const WIDGET_STYLES = `
        author declarations always win over normal user-agent declarations. */
     display: none !important;
   }
+  /* The toggle and panel each get their own independent fixed position --
+     dragging one never affects the other's remembered position, unlike a
+     single position shared between them (which forced anchor-edge-flipping
+     and viewport-clamping heuristics just to keep a wildly differently-sized
+     sibling from ending up somewhere nonsensical on every Collapse/Expand). */
+  [part="toggle"],
+  [part="panel"] {
+    position: fixed;
+    inset-inline-end: 1.5rem;
+    inset-block-end: 1.5rem;
+    z-index: 2147483000;
+  }
   [part="toggle"] {
     width: 3.25rem;
     height: 3.25rem;
@@ -33,7 +41,6 @@ const WIDGET_STYLES = `
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   }
   [part="panel"] {
-    position: relative;
     display: flex;
     flex-direction: column;
     width: 22rem;
@@ -245,7 +252,7 @@ export class LocalChat extends HTMLElement {
     this.#toggleButton.setAttribute('part', 'toggle')
     this.#toggleButton.setAttribute('aria-label', 'Open chat')
     this.#toggleButton.textContent = this.logo
-    this.#makeDraggable(this.#toggleButton, () => this.#setCollapsed(false))
+    this.#makeDraggable(this.#toggleButton, this.#toggleButton, () => this.#setCollapsed(false))
     this.#root.appendChild(this.#toggleButton)
 
     this.#panel = document.createElement('div')
@@ -261,7 +268,7 @@ export class LocalChat extends HTMLElement {
     const header = document.createElement('div')
     header.setAttribute('part', 'panel-header')
     this.#panel.appendChild(header)
-    this.#makeDraggable(header)
+    this.#makeDraggable(header, this.#panel)
 
     const titleHeading = document.createElement('span')
     titleHeading.setAttribute('part', 'title')
@@ -331,66 +338,48 @@ export class LocalChat extends HTMLElement {
   #setCollapsed(collapsed: boolean): void {
     if (this.#toggleButton) this.#toggleButton.hidden = !collapsed
     if (this.#panel) this.#panel.hidden = collapsed
-    // The box just switched to a very differently-sized child (the small toggle
-    // vs. the much larger panel) -- an anchor offset that was safe for the
-    // previous child isn't necessarily safe for this one (e.g. a bottom offset
-    // clamped only against the toggle's height could still push the taller
-    // panel's top off-screen). Re-clamp against whichever child is visible now.
-    this.#repositionWithinViewport()
     if (!collapsed) void this.#establishParentSession()
   }
 
   /**
-   * Positions the Widget at (`left`, `top`) for a box of the given size,
-   * clamped so it stays fully within the viewport, then anchors each axis
-   * toward whichever edge it ends up nearer to (rather than always top-left)
-   * -- so the box grows away from the edge it's close to when Collapsed/
-   * Expanded swaps in a much larger or smaller child, and later transitions
-   * land back in the same corner/quadrant instead of jumping to top-left.
+   * Positions `target` at (`left`, `top`), anchoring each axis toward
+   * whichever edge it ends up nearer to (rather than always top-left) -- so
+   * a later browser resize tends to keep it near the same edge it was left
+   * at. No clamping: dragging fully outside the viewport is allowed, since
+   * the toggle and panel each track their own position independently now --
+   * dragging one can no longer strand the other somewhere unexpected.
    */
-  #anchorClamped(left: number, top: number, width: number, height: number): void {
-    const clampedLeft = Math.min(Math.max(left, 0), Math.max(0, window.innerWidth - width))
-    const clampedTop = Math.min(Math.max(top, 0), Math.max(0, window.innerHeight - height))
-
-    if (clampedLeft + width / 2 < window.innerWidth / 2) {
-      this.style.left = `${clampedLeft}px`
-      this.style.right = 'auto'
+  #anchorTo(target: HTMLElement, left: number, top: number, width: number, height: number): void {
+    if (left + width / 2 < window.innerWidth / 2) {
+      target.style.left = `${left}px`
+      target.style.right = 'auto'
     } else {
-      this.style.right = `${window.innerWidth - (clampedLeft + width)}px`
-      this.style.left = 'auto'
+      target.style.right = `${window.innerWidth - (left + width)}px`
+      target.style.left = 'auto'
     }
-    if (clampedTop + height / 2 < window.innerHeight / 2) {
-      this.style.top = `${clampedTop}px`
-      this.style.bottom = 'auto'
+    if (top + height / 2 < window.innerHeight / 2) {
+      target.style.top = `${top}px`
+      target.style.bottom = 'auto'
     } else {
-      this.style.bottom = `${window.innerHeight - (clampedTop + height)}px`
-      this.style.top = 'auto'
+      target.style.bottom = `${window.innerHeight - (top + height)}px`
+      target.style.top = 'auto'
     }
   }
 
   /**
-   * Re-clamps the Widget's current position against whichever child (toggle
-   * or panel) is visible right now. A no-op until the first drag -- before
-   * that, the default CSS inset-based anchor is already safe.
-   */
-  #repositionWithinViewport(): void {
-    const everDragged = this.style.left !== '' || this.style.right !== '' || this.style.top !== '' || this.style.bottom !== ''
-    if (!everDragged) return
-    const rect = this.getBoundingClientRect()
-    this.#anchorClamped(rect.left, rect.top, rect.width, rect.height)
-  }
-
-  /**
-   * Lets the user drag `handle` to reposition the whole Widget. If `onClick` is
-   * given, it fires on a genuine click (including a plain synthetic .click()) --
-   * suppressed only when the preceding pointerdown/up sequence moved enough to
-   * count as a drag (used for the toggle button, which needs both behaviors).
+   * Lets the user drag `handle` to reposition `target` (its own independent
+   * position -- the toggle and panel each track theirs separately, so
+   * dragging one never affects the other). If `onClick` is given, it fires on
+   * a genuine click (including a plain synthetic .click()) -- suppressed only
+   * when the preceding pointerdown/up sequence moved enough to count as a
+   * drag (used for the toggle button, which needs both behaviors, and is
+   * also its own `target`).
    *
    * pointermove/pointerup are tracked on `window`, not `handle` -- capture still
    * happens on `handle`, but listening on `window` is the more robust choice
    * regardless of what's capturing.
    */
-  #makeDraggable(handle: HTMLElement, onClick?: () => void): void {
+  #makeDraggable(handle: HTMLElement, target: HTMLElement, onClick?: () => void): void {
     let dragged = false
 
     handle.addEventListener('pointerdown', (e) => {
@@ -399,7 +388,7 @@ export class LocalChat extends HTMLElement {
       handle.setPointerCapture(e.pointerId)
       const startX = e.clientX
       const startY = e.clientY
-      const rect = this.getBoundingClientRect()
+      const rect = target.getBoundingClientRect()
       const startLeft = rect.left
       const startTop = rect.top
 
@@ -407,7 +396,7 @@ export class LocalChat extends HTMLElement {
         const dx = moveEvent.clientX - startX
         const dy = moveEvent.clientY - startY
         if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragged = true
-        this.#anchorClamped(startLeft + dx, startTop + dy, rect.width, rect.height)
+        this.#anchorTo(target, startLeft + dx, startTop + dy, rect.width, rect.height)
       }
       const onUp = () => {
         window.removeEventListener('pointermove', onMove)
