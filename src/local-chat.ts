@@ -33,6 +33,7 @@ const WIDGET_STYLES = `
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   }
   [part="panel"] {
+    position: relative;
     display: flex;
     flex-direction: column;
     width: 22rem;
@@ -41,14 +42,24 @@ const WIDGET_STYLES = `
     min-height: 12rem;
     max-width: 90vw;
     max-height: 90vh;
-    resize: both;
-    overflow: auto;
+    overflow: hidden;
     box-sizing: border-box;
     background: var(--local-chat-background, #fff);
     color: var(--local-chat-color, #111);
     border: 1px solid var(--local-chat-border-color, #ccc);
     border-radius: var(--local-chat-radius, 0.5rem);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+  [part="resize-handle"] {
+    position: absolute;
+    top: 0.35rem;
+    left: 0.35rem;
+    width: 0.6rem;
+    height: 0.6rem;
+    border-top: 2px solid var(--local-chat-border-color, #ccc);
+    border-left: 2px solid var(--local-chat-border-color, #ccc);
+    cursor: nwse-resize;
+    touch-action: none;
   }
   [part="panel-header"] {
     display: flex;
@@ -209,6 +220,12 @@ export class LocalChat extends HTMLElement {
     this.#panel.setAttribute('part', 'panel')
     this.#root.appendChild(this.#panel)
 
+    const resizeHandle = document.createElement('div')
+    resizeHandle.setAttribute('part', 'resize-handle')
+    resizeHandle.setAttribute('aria-hidden', 'true')
+    this.#panel.appendChild(resizeHandle)
+    this.#makeResizable(resizeHandle, this.#panel)
+
     const header = document.createElement('div')
     header.setAttribute('part', 'panel-header')
     this.#panel.appendChild(header)
@@ -307,6 +324,38 @@ export class LocalChat extends HTMLElement {
         if (!dragged) onClick()
       })
     }
+  }
+
+  /**
+   * Lets the user drag `handle` (positioned at `target`'s top-left corner) to
+   * resize `target` -- growing it as the handle moves up/left, shrinking it as
+   * it moves down/right, matching the panel's bottom-right anchor: that corner
+   * stays put, and the handle at the opposite corner is what visually moves.
+   * `target`'s CSS min/max-width/height clamp the rendered size regardless of
+   * what's computed here, so there's no separate bounds-checking to do.
+   */
+  #makeResizable(handle: HTMLElement, target: HTMLElement): void {
+    handle.addEventListener('pointerdown', (e) => {
+      handle.setPointerCapture(e.pointerId)
+      const startX = e.clientX
+      const startY = e.clientY
+      const rect = target.getBoundingClientRect()
+      const startWidth = rect.width
+      const startHeight = rect.height
+
+      const onMove = (moveEvent: PointerEvent) => {
+        const dx = moveEvent.clientX - startX
+        const dy = moveEvent.clientY - startY
+        target.style.width = `${startWidth - dx}px`
+        target.style.height = `${startHeight - dy}px`
+      }
+      const onUp = () => {
+        handle.removeEventListener('pointermove', onMove)
+        handle.removeEventListener('pointerup', onUp)
+      }
+      handle.addEventListener('pointermove', onMove)
+      handle.addEventListener('pointerup', onUp)
+    })
   }
 
   #instructionsOverride: string | undefined
