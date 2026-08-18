@@ -339,6 +339,10 @@ export class LocalChat extends HTMLElement {
    * given, it fires on a genuine click (including a plain synthetic .click()) --
    * suppressed only when the preceding pointerdown/up sequence moved enough to
    * count as a drag (used for the toggle button, which needs both behaviors).
+   *
+   * pointermove/pointerup are tracked on `window`, not `handle` -- capture still
+   * happens on `handle`, but listening on `window` is the more robust choice
+   * regardless of what's capturing.
    */
   #makeDraggable(handle: HTMLElement, onClick?: () => void): void {
     let dragged = false
@@ -363,11 +367,11 @@ export class LocalChat extends HTMLElement {
         this.style.bottom = 'auto'
       }
       const onUp = () => {
-        handle.removeEventListener('pointermove', onMove)
-        handle.removeEventListener('pointerup', onUp)
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
       }
-      handle.addEventListener('pointermove', onMove)
-      handle.addEventListener('pointerup', onUp)
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
     })
 
     if (onClick) {
@@ -384,6 +388,8 @@ export class LocalChat extends HTMLElement {
    * stays put, and the handle at the opposite corner is what visually moves.
    * `target`'s CSS min/max-width/height clamp the rendered size regardless of
    * what's computed here, so there's no separate bounds-checking to do.
+   * pointermove/pointerup are tracked on `window`, not `handle` (see
+   * #makeDraggable).
    */
   #makeResizable(handle: HTMLElement, target: HTMLElement): void {
     handle.addEventListener('pointerdown', (e) => {
@@ -401,11 +407,11 @@ export class LocalChat extends HTMLElement {
         target.style.height = `${startHeight - dy}px`
       }
       const onUp = () => {
-        handle.removeEventListener('pointermove', onMove)
-        handle.removeEventListener('pointerup', onUp)
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
       }
-      handle.addEventListener('pointermove', onMove)
-      handle.addEventListener('pointerup', onUp)
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
     })
   }
 

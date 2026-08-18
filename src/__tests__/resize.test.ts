@@ -54,7 +54,7 @@ describe('Panel resize handle', () => {
     stubRect(panel, 352, 448)
 
     handle.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, clientX: 300, clientY: 300 }))
-    handle.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerId: 1, clientX: 250, clientY: 270 }))
+    handle.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, composed: true, pointerId: 1, clientX: 250, clientY: 270 }))
 
     expect(panel.style.width).toBe('402px')
     expect(panel.style.height).toBe('478px')
@@ -73,7 +73,7 @@ describe('Panel resize handle', () => {
     stubRect(panel, 352, 448)
 
     handle.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, clientX: 300, clientY: 300 }))
-    handle.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerId: 1, clientX: 340, clientY: 330 }))
+    handle.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, composed: true, pointerId: 1, clientX: 340, clientY: 330 }))
 
     expect(panel.style.width).toBe('312px')
     expect(panel.style.height).toBe('418px')
