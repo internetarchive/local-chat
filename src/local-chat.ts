@@ -346,6 +346,7 @@ export class LocalChat extends HTMLElement {
 
     this.#panel = document.createElement('div')
     this.#panel.setAttribute('part', 'panel')
+    this.#panel.tabIndex = -1
     this.#root.appendChild(this.#panel)
 
     const resizeHandle = document.createElement('div')
@@ -356,6 +357,17 @@ export class LocalChat extends HTMLElement {
 
     this.#panel.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') this.#setCollapsed(true)
+    })
+
+    // Clicking a non-interactive area (transcript background, a message's
+    // text, etc.) doesn't move focus anywhere on its own, which would leave
+    // Escape with nothing inside the panel to bubble the keydown through --
+    // claim focus onto the panel itself as a fallback, unless focus already
+    // landed on something more specific (an input, button, or pill).
+    this.#panel.addEventListener('click', () => {
+      if (!this.#panel?.contains(this.#root.activeElement)) {
+        this.#panel?.focus()
+      }
     })
 
     const header = document.createElement('div')

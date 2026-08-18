@@ -70,6 +70,38 @@ describe('LocalChat Collapsed/Expanded state', () => {
     expect(toggle?.hidden).toBe(false)
   })
 
+  it('clicking a non-interactive area of the panel (e.g. the transcript background) moves focus there, so Escape then collapses the Widget', async () => {
+    ;(globalThis as { LanguageModel?: unknown }).LanguageModel = mockLanguageModel()
+    const chat = mount()
+    chat.setAttribute('collapsed', 'false')
+    await flushMicrotasks()
+
+    const transcript = chat.shadowRoot?.querySelector<HTMLElement>('[part="transcript"]')
+    transcript?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+
+    const panel = chat.shadowRoot?.querySelector<HTMLElement>('[part="panel"]')
+    expect(chat.shadowRoot?.activeElement).toBe(panel)
+
+    panel?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+
+    const toggle = chat.shadowRoot?.querySelector<HTMLElement>('[part="toggle"]')
+    expect(panel?.hidden).toBe(true)
+    expect(toggle?.hidden).toBe(false)
+  })
+
+  it('does not steal focus when the click already landed on an interactive element', async () => {
+    ;(globalThis as { LanguageModel?: unknown }).LanguageModel = mockLanguageModel()
+    const chat = mount()
+    chat.setAttribute('collapsed', 'false')
+    await flushMicrotasks()
+
+    const input = chat.shadowRoot?.querySelector<HTMLInputElement>('[part="input"]')
+    input?.focus()
+    input?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+
+    expect(chat.shadowRoot?.activeElement).toBe(input)
+  })
+
   it('does not collapse when Escape is pressed outside the panel', async () => {
     ;(globalThis as { LanguageModel?: unknown }).LanguageModel = mockLanguageModel()
     const chat = mount()
