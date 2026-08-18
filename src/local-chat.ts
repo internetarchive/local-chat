@@ -25,6 +25,17 @@ function coerceToText(raw: string): string {
   }
 }
 
+function coerceToList(raw: string): string[] {
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (Array.isArray(parsed)) return parsed.filter((item): item is string => typeof item === 'string')
+    if (typeof parsed === 'string') return [parsed]
+  } catch {
+    // fall through to plain-string handling
+  }
+  return [raw]
+}
+
 export class LocalChat extends HTMLElement {
   static readonly tagName = 'local-chat'
 
@@ -78,6 +89,7 @@ export class LocalChat extends HTMLElement {
     this.#emptyState = document.createElement('div')
     this.#emptyState.setAttribute('part', 'empty-state')
     this.#panel.appendChild(this.#emptyState)
+    this.#renderStarters()
 
     this.#transcript = document.createElement('div')
     this.#transcript.setAttribute('part', 'transcript')
@@ -137,6 +149,25 @@ export class LocalChat extends HTMLElement {
   set context(value: string) {
     this.#contextOverride = value
     this.#hasContextOverride = true
+  }
+
+  #startersOverride: string | undefined
+  #hasStartersOverride = false
+
+  get starters(): string[] {
+    if (this.#hasStartersOverride && this.#startersOverride !== undefined) return coerceToList(this.#startersOverride)
+    const attr = this.getAttribute('starters')
+    return attr === null ? [] : coerceToList(attr)
+  }
+
+  set starters(value: string) {
+    this.#startersOverride = value
+    this.#hasStartersOverride = true
+  }
+
+  #renderStarters(): void {
+    const container = this.#renderPills('starter', this.starters, (text) => this.#submitText(text))
+    this.#emptyState?.appendChild(container)
   }
 
   #combinedContext(): string {
