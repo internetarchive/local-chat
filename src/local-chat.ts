@@ -1,4 +1,4 @@
-import { appendExchange, type Exchange, readHistory } from './history.js'
+import { appendExchange, clearHistory, type Exchange, readHistory } from './history.js'
 import { getLanguageModel, type LanguageModelAPI, type LanguageModelMessage, type LanguageModelSession } from './language-model.js'
 import { renderCompleteMarkdown, renderMarkdownStream } from './markdown.js'
 
@@ -867,6 +867,7 @@ export class LocalChat extends HTMLElement {
     void this.#childSessionPromise?.then((session) => session.destroy())
     this.#childSessionPromise = undefined
     this.#conversationStarted = false
+    clearHistory(this.historyKey)
     if (this.#transcript) this.#transcript.innerHTML = ''
     if (this.#emptyState) this.#emptyState.innerHTML = ''
     this.#renderStarters()
