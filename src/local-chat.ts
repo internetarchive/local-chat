@@ -479,12 +479,18 @@ export class LocalChat extends HTMLElement {
 
   async #sendMessage(text: string): Promise<void> {
     this.#supersedeInFlightScratchSessions()
+    this.dispatchEvent(new CustomEvent('message-sent', { detail: { text } }))
     this.#appendMessageBubble('user', text)
     const bubble = this.#appendMessageBubble('assistant', '')
-    const session = await this.#getOrForkChildSession()
-    const stream = session.promptStreaming(text, {})
-    await renderMarkdownStream(bubble, stream)
-    await this.#generateFollowups(session)
+    try {
+      const session = await this.#getOrForkChildSession()
+      const stream = session.promptStreaming(text, {})
+      const response = await renderMarkdownStream(bubble, stream)
+      this.dispatchEvent(new CustomEvent('response-received', { detail: { text: response } }))
+      await this.#generateFollowups(session)
+    } catch (error) {
+      this.dispatchEvent(new CustomEvent('error', { detail: { error } }))
+    }
   }
 
   #currentFollowupScratch: LanguageModelSession | undefined
