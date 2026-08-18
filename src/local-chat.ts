@@ -558,10 +558,11 @@ export class LocalChat extends HTMLElement {
 
   #currentIcebreakerScratch: LanguageModelSession | undefined
   #icebreakerOptions: string[] | undefined
+  #conversationStarted = false
 
   async #generateIcebreakers(parentSession: LanguageModelSession): Promise<void> {
     const max = this.maxFollowups
-    if (max === 0) return
+    if (max === 0 || this.#conversationStarted) return
     const scratch = await parentSession.clone()
     this.#currentIcebreakerScratch = scratch
     const options = await this.#requestSuggestions(
@@ -576,7 +577,12 @@ export class LocalChat extends HTMLElement {
   }
 
   #renderIcebreakers(): void {
-    if (!this.#icebreakerOptions) return
+    // The Conversation may have started (e.g. a Starter clicked) after this
+    // generation call began but before Icebreaker generation even kicked off --
+    // #supersedeInFlightScratchSessions only catches generation already in
+    // flight at send-time, so this is the last line of defense against
+    // rendering into an empty state nobody is looking at anymore.
+    if (this.#conversationStarted || !this.#icebreakerOptions) return
     const container = this.#renderPills('icebreaker', this.#icebreakerOptions, (text) => this.#submitText(text))
     this.#emptyState?.appendChild(container)
   }
@@ -643,6 +649,7 @@ export class LocalChat extends HTMLElement {
     this.#supersedeInFlightScratchSessions()
     void this.#childSessionPromise?.then((session) => session.destroy())
     this.#childSessionPromise = undefined
+    this.#conversationStarted = false
     if (this.#transcript) this.#transcript.innerHTML = ''
     if (this.#emptyState) this.#emptyState.innerHTML = ''
     this.#renderStarters()
@@ -666,6 +673,7 @@ export class LocalChat extends HTMLElement {
   }
 
   async #sendMessage(text: string): Promise<void> {
+    this.#conversationStarted = true
     this.#supersedeInFlightScratchSessions()
     this.dispatchEvent(new CustomEvent('message-sent', { detail: { text } }))
     this.#appendMessageBubble('user', text)
