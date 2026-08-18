@@ -80,6 +80,75 @@ so reading it picks up whichever was set (attribute or JS property
 assignment) without shadowing the built-in tooltip behavior a host might
 also rely on. Defaults to `"Local Chat"` when unset.
 
+**`max-history`** (attribute): non-negative integer, caps how many
+Exchanges are kept in History. `0` disables History entirely — nothing is
+read on Expand, nothing is written after a response, Clear has nothing
+extra to purge. Default: `5` (deliberately conservative: every restored
+Exchange gets replayed into the Child Session's priming before the
+Conversation can continue, and on-device context windows are typically
+much smaller than cloud models — raise it if a host's model/context
+budget comfortably allows more).
+
+**`history-key`** (attribute): selects the storage scope for History.
+Three reserved keywords — matched to Web-platform vocabulary, since
+`localStorage` is already origin-partitioned by the browser and none of
+these need to embed the origin explicitly:
+- `origin`: one History shared across every page on the site.
+- `path`: scoped to `location.pathname` — query-string variations share
+  the same History.
+- `url` (default): scoped to `location.pathname + location.search` —
+  query-string variations get their own History. `location.hash` is never
+  part of the scope (conventionally an in-page anchor, not a distinct
+  page).
+
+Any other literal value is used verbatim as the storage key. The three
+keywords above are reserved — a custom key that happens to match one of
+them is interpreted as the keyword, not a verbatim string; pick a
+different literal value if that collides with something you need.
+
+## History
+
+Stored in `localStorage` (see ADR-0006), internally namespaced under a
+fixed prefix regardless of the resolved `history-key` scope, so it can
+never collide with anything else the host page stores in the same
+origin's `localStorage`.
+
+1. On first Expand, before Parent Session establishment even begins:
+   History is read synchronously from storage for the resolved
+   `history-key` scope. If non-empty, its Exchanges render into the
+   transcript immediately, independent of Parent Session's (comparatively
+   slow) establishment — which still proceeds exactly as described in
+   Generation flow step 1, concurrently. Marks the Conversation as
+   already-started, the same as if a message had already been sent (see
+   Generation flow step 2 — Starters/Icebreakers are skipped when this is
+   the case). Rendered restored Exchanges go through the same markdown
+   rendering/sanitization as a live response (see Generation flow step 4),
+   not raw text, and the transcript shows no visual distinction between
+   restored and newly-generated messages — the Conversation is meant to
+   feel like it never stopped.
+2. Once the Parent Session resolves, if History was restored: the Child
+   Session is forked and primed eagerly (see ADR-0005) — replaying every
+   restored Exchange into it — rather than waiting for the user's first
+   new message (contrast Generation flow step 3, the ordinary lazy-fork
+   path).
+   A message sent before this finishes simply waits on the same
+   session-establishment promise already in flight, no separate mechanism
+   needed. Once replay completes, Follow-ups are generated once from the
+   last restored Exchange, through the same mechanism and Supersede
+   semantics as after any streamed response (Generation flow steps 5–6).
+3. Every completed Exchange — Generation flow step 4's streamed response,
+   once it finishes without error — is written to History for the
+   resolved scope, dropping the oldest entry first once `max-history` is
+   exceeded. An Exchange that errors or is Superseded before completing is
+   never saved (see CONTEXT.md's Exchange entry).
+4. Clear (Generation flow step 7) also purges the persisted History entry
+   for the current scope, so a subsequent page load doesn't restore what
+   was just cleared.
+5. A storage failure of any kind — quota exceeded, privacy mode blocking
+   storage, unparseable or incompatible data from a prior format version —
+   is treated identically to no History existing at all; it never
+   surfaces as an error or breaks the Widget.
+
 ## Generation flow
 
 1. On first Expand (not on page load, so an instance nobody ever opens
@@ -147,7 +216,7 @@ also rely on. Defaults to `"Local Chat"` when unset.
 7. Clear discards the current Child Session and forks a fresh one from the
    still-primed Parent Session — the Conversation resets to empty (showing
    `starters` and the cached Icebreakers again, per step 2) without repaying the
-   Instructions/Context setup cost.
+   Instructions/Context setup cost. Also purges History (see History, step 4).
 8. If the on-device language model API is unavailable or unsupported, the
    component is a complete no-op: renders nothing, does nothing.
 
@@ -189,6 +258,12 @@ also rely on. Defaults to `"Local Chat"` when unset.
   response received, error) even though full headless/custom-UI mode is
   deferred — costs nothing to include and gives hosts a hook without
   committing to a stable custom-rendering contract yet.
+- **History format versioning**: the persisted JSON carries a
+  schema-version marker, so a future format change can detect and discard
+  incompatible old data (treated as "no History," per the History section)
+  rather than erroring on it or rendering something broken — cheap
+  insurance now, versus retrofitting version detection onto an
+  already-shipped unversioned format later.
 - **Session architecture**: the durable Conversation-holding hierarchy is
   two generations only (Parent, Child) — each message in a Conversation
   correctly builds on the prior one in sequence, so there's no need for

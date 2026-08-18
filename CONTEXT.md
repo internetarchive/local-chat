@@ -31,10 +31,29 @@ The back-and-forth message history held in one Child Session. Ends when the
 chat is cleared.
 _Avoid_: Thread
 
+**Exchange**:
+One complete user message and the Assistant's reply to it, written to
+History atomically once the reply finishes. A message that never got a
+reply — Superseded, errored, or the tab closed before it completed — is
+never saved; an unanswered trailing question isn't worth keeping without a
+way to retry it.
+_Avoid_: Turn, pair, round
+
+**History**:
+The persisted collection of past Exchanges for a given storage scope,
+surviving across page loads — unlike the Conversation itself, which lives
+only as long as its Child Session does. Capped at a configured size,
+oldest Exchange dropped first once exceeded. Restored into a freshly
+forked Child Session on first Expand, so the Conversation continues from
+where History left off rather than starting over.
+_Avoid_: Chat log, saved messages
+
 **Clear**:
 Discarding the current Child Session and forking a fresh one from the
 still-primed Parent Session — resets the Conversation without repaying the
-Instructions/Context setup cost.
+Instructions/Context setup cost. Also purges the persisted History for the
+current storage scope, so a later page load doesn't resurrect what was
+just cleared.
 _Avoid_: Reset, restart
 
 **Follow-up**:
