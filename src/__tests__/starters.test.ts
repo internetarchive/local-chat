@@ -74,4 +74,25 @@ describe('Starters', () => {
     const transcript = chat.shadowRoot?.querySelector('[part="transcript"]')
     expect(transcript?.textContent).toContain('Summarize this page')
   })
+
+  it('focuses the input after clicking a Starter pill', async () => {
+    const LM = mockLanguageModel()
+    ;(globalThis as { LanguageModel?: unknown }).LanguageModel = LM
+    const chat = mount()
+    chat.setAttribute('starters', 'Summarize this page')
+    await flushMicrotasks()
+    expandWidget(chat)
+    await flushMicrotasks()
+
+    const input = chat.shadowRoot?.querySelector('[part="input"]')
+    const pill = chat.shadowRoot?.querySelector<HTMLButtonElement>('[part="starter"]')
+    // Simulate the pill actually having focus, as a real browser's default
+    // click behavior on a button would leave it -- jsdom's .click() doesn't
+    // do this itself, so without this the test can't tell the fix apart.
+    pill?.focus()
+    pill?.click()
+    await flushMicrotasks()
+
+    expect(chat.shadowRoot?.activeElement).toBe(input)
+  })
 })

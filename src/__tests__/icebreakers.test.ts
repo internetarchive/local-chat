@@ -98,6 +98,30 @@ describe('Icebreakers', () => {
     expect(childSession.promptStreaming).toHaveBeenCalledWith('Q1?', expect.anything())
   })
 
+  it('focuses the input after clicking an Icebreaker pill', async () => {
+    const { parentSession, scratchSession } = setUpChat('["Q1?"]')
+    const childSession = createMockSession({ promptStreamingChunks: ['reply'] })
+    vi.mocked(parentSession.clone).mockImplementation(async (): Promise<ReturnType<typeof createMockSession>> => {
+      return vi.mocked(parentSession.clone).mock.calls.length === 1 ? scratchSession : childSession
+    })
+    const chat = mount()
+    chat.setAttribute('icebreakers', '')
+    await flushMicrotasks()
+    expandWidget(chat)
+    await flushMicrotasks()
+
+    const input = chat.shadowRoot?.querySelector('[part="input"]')
+    const pill = chat.shadowRoot?.querySelector<HTMLButtonElement>('[part="icebreaker"]')
+    // Simulate the pill actually having focus, as a real browser's default
+    // click behavior on a button would leave it -- jsdom's .click() doesn't
+    // do this itself, so without this the test can't tell the fix apart.
+    pill?.focus()
+    pill?.click()
+    await flushMicrotasks()
+
+    expect(chat.shadowRoot?.activeElement).toBe(input)
+  })
+
   it('has no effect when max-followups is 0', async () => {
     const { parentSession } = setUpChat()
     const chat = mount()

@@ -99,6 +99,28 @@ describe('Follow-ups', () => {
     expect(childSession.promptStreaming).toHaveBeenLastCalledWith('What about X?', expect.anything())
   })
 
+  it('focuses the input after clicking a Follow-up pill', async () => {
+    setUpChat('["What about X?"]')
+    const chat = mount()
+    await flushMicrotasks()
+    expandWidget(chat)
+    await flushMicrotasks()
+
+    sendMessage(chat, 'hello')
+    await flushMicrotasks()
+
+    const input = chat.shadowRoot?.querySelector('[part="input"]')
+    const pill = chat.shadowRoot?.querySelector<HTMLButtonElement>('[part="followup"]')
+    // Simulate the pill actually having focus, as a real browser's default
+    // click behavior on a button would leave it -- jsdom's .click() doesn't
+    // do this itself, so without this the test can't tell the fix apart.
+    pill?.focus()
+    pill?.click()
+    await flushMicrotasks()
+
+    expect(chat.shadowRoot?.activeElement).toBe(input)
+  })
+
   it('caps the requested count via max-followups', async () => {
     const { scratchSession } = setUpChat()
     const chat = mount()

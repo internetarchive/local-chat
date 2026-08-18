@@ -947,6 +947,7 @@ export class LocalChat extends HTMLElement {
 
   #submitText(text: string): void {
     if (this.#emptyState) this.#emptyState.innerHTML = ''
+    this.#input?.focus()
     void this.#sendMessage(text)
   }
 
@@ -1025,6 +1026,7 @@ export class LocalChat extends HTMLElement {
     if (options.length === 0) return
     const container = this.#renderPills('followup', options, (text) => {
       container?.remove()
+      this.#input?.focus()
       void this.#sendMessage(text)
     })
     this.#appendToTranscript(container)
