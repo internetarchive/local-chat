@@ -54,6 +54,18 @@ describe('LocalChat Collapsed/Expanded state', () => {
     expect(toggle?.hidden).toBe(true)
   })
 
+  it('focuses the input when the panel expands from the toggle button, so Escape works immediately', async () => {
+    ;(globalThis as { LanguageModel?: unknown }).LanguageModel = mockLanguageModel()
+    const chat = mount()
+    await flushMicrotasks()
+
+    const toggle = chat.shadowRoot?.querySelector<HTMLButtonElement>('[part="toggle"]')
+    toggle?.click()
+
+    const input = chat.shadowRoot?.querySelector<HTMLInputElement>('[part="input"]')
+    expect(chat.shadowRoot?.activeElement).toBe(input)
+  })
+
   it('pressing Escape while focus is inside the panel collapses the Widget', async () => {
     ;(globalThis as { LanguageModel?: unknown }).LanguageModel = mockLanguageModel()
     const chat = mount()

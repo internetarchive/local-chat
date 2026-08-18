@@ -362,12 +362,14 @@ export class LocalChat extends HTMLElement {
     // Clicking a non-interactive area (transcript background, a message's
     // text, etc.) doesn't move focus anywhere on its own, which would leave
     // Escape with nothing inside the panel to bubble the keydown through --
-    // claim focus onto the panel itself as a fallback, unless focus already
-    // landed on something more specific (an input, button, or pill).
-    this.#panel.addEventListener('click', () => {
-      if (!this.#panel?.contains(this.#root.activeElement)) {
-        this.#panel?.focus()
-      }
+    // claim focus onto the panel itself as a fallback. Checked against the
+    // actual click target, not the currently focused element -- the input
+    // may already be focused (e.g. auto-focused on Expand) when a click
+    // lands elsewhere, and that previously-focused element shouldn't count
+    // as "focus already landed on something more specific" for this click.
+    this.#panel.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('button, input')) return
+      this.#panel?.focus()
     })
 
     const header = document.createElement('div')
@@ -452,6 +454,7 @@ export class LocalChat extends HTMLElement {
     if (!collapsed) {
       this.#restoreHistoryIfNeeded()
       void this.#establishParentSession()
+      this.#input?.focus()
     }
   }
 
