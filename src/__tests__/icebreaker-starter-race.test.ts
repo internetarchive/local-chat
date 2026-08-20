@@ -73,7 +73,6 @@ describe('Icebreakers racing an early Starter click', () => {
     icebreakerPromptDeferred.resolve('["Too late"]')
     await flushMicrotasks()
 
-    const emptyState = chat.shadowRoot?.querySelector('[part="empty-state"]')
-    expect(emptyState?.querySelectorAll('[part="icebreaker"]').length).toBe(0)
+    expect(chat.shadowRoot?.querySelectorAll('[part="icebreaker"]').length).toBe(0)
   })
 })

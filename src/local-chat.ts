@@ -276,6 +276,7 @@ const DEFAULT_INSTRUCTIONS =
 
 const DEFAULT_LOGO = '💬'
 const DEFAULT_TITLE = 'Local Chat'
+const DEFAULT_EMPTY_MESSAGE = 'Ask me anything -- this chat runs entirely on your device, powered by built-in AI.'
 
 const IMAGE_EXTENSION_PATTERN = /\.(png|jpe?g|gif|svg|webp|avif)$/i
 
@@ -447,11 +448,11 @@ export class LocalChat extends HTMLElement {
     this.#emptyState = document.createElement('div')
     this.#emptyState.setAttribute('part', 'empty-state')
     this.#panel.appendChild(this.#emptyState)
-    this.#renderStarters()
 
     this.#transcript = document.createElement('div')
     this.#transcript.setAttribute('part', 'transcript')
     this.#panel.appendChild(this.#transcript)
+    this.#renderStarters()
 
     this.#statusEl = document.createElement('div')
     this.#statusEl.setAttribute('part', 'status')
@@ -543,7 +544,7 @@ export class LocalChat extends HTMLElement {
     const exchanges = readHistory(this.historyKey, this.maxHistory)
     if (exchanges.length === 0) return
     this.#conversationStarted = true
-    if (this.#emptyState) this.#emptyState.innerHTML = ''
+    this.#clearEmptyState()
     for (const exchange of exchanges) {
       this.#appendMessageBubble('user', exchange.user)
       const bubble = this.#appendMessageBubble('assistant', '')
@@ -721,6 +722,17 @@ export class LocalChat extends HTMLElement {
     this.#contextOverride = value
   }
 
+  #emptyMessageOverride: string | undefined
+
+  get emptyMessage(): string {
+    if (this.#emptyMessageOverride !== undefined) return this.#emptyMessageOverride
+    return this.getAttribute('empty-message') ?? DEFAULT_EMPTY_MESSAGE
+  }
+
+  set emptyMessage(value: string) {
+    this.#emptyMessageOverride = value
+  }
+
   #startersOverride: string | undefined
 
   get starters(): string[] {
@@ -735,9 +747,30 @@ export class LocalChat extends HTMLElement {
 
   #renderStarters(): void {
     const starters = this.starters
-    if (starters.length === 0) return
-    const container = this.#renderPills('starter', starters, (text) => this.#submitText(text))
-    this.#emptyState?.appendChild(container)
+    if (starters.length > 0) {
+      const container = this.#renderPills('starter', starters, (text) => this.#submitText(text))
+      this.#appendToTranscript(container)
+    }
+    this.#updateEmptyMessage()
+  }
+
+  /**
+   * Shows the Empty message only once it's clear neither a Starter nor an
+   * Icebreaker is going to appear in its place -- checked directly against
+   * the transcript's rendered content rather than a separately-tracked flag,
+   * so it can never drift out of sync with what's actually visible. A no-op
+   * once a real Exchange has started; #clearEmptyState handles that case.
+   */
+  #updateEmptyMessage(): void {
+    if (!this.#emptyState || this.#conversationStarted) return
+    const hasPills = !!this.#transcript?.querySelector('[part="starters"], [part="icebreakers"]')
+    this.#emptyState.textContent = hasPills ? '' : this.emptyMessage
+  }
+
+  /** Removes any Starter/Icebreaker pills and the Empty message -- shared by every path that starts a real Exchange. */
+  #clearEmptyState(): void {
+    this.#transcript?.querySelectorAll('[part="starters"], [part="icebreakers"]').forEach((el) => el.remove())
+    if (this.#emptyState) this.#emptyState.textContent = ''
   }
 
   #combinedContext(): string {
@@ -869,10 +902,13 @@ export class LocalChat extends HTMLElement {
     // generation call began but before Icebreaker generation even kicked off --
     // #supersedeInFlightScratchSessions only catches generation already in
     // flight at send-time, so this is the last line of defense against
-    // rendering into an empty state nobody is looking at anymore.
-    if (this.#conversationStarted || !this.#icebreakerOptions || this.#icebreakerOptions.length === 0) return
-    const container = this.#renderPills('icebreaker', this.#icebreakerOptions, (text) => this.#submitText(text))
-    this.#emptyState?.appendChild(container)
+    // rendering into a transcript nobody is looking at anymore.
+    if (this.#conversationStarted) return
+    if (this.#icebreakerOptions && this.#icebreakerOptions.length > 0) {
+      const container = this.#renderPills('icebreaker', this.#icebreakerOptions, (text) => this.#submitText(text))
+      this.#appendToTranscript(container)
+    }
+    this.#updateEmptyMessage()
   }
 
   #childSessionPromise: Promise<LanguageModelSession> | undefined
@@ -959,13 +995,13 @@ export class LocalChat extends HTMLElement {
     this.#conversationStarted = false
     clearHistory(this.historyKey)
     if (this.#transcript) this.#transcript.innerHTML = ''
-    if (this.#emptyState) this.#emptyState.innerHTML = ''
+    this.#clearEmptyState()
     this.#renderStarters()
     this.#renderIcebreakers()
   }
 
   #submitText(text: string): void {
-    if (this.#emptyState) this.#emptyState.innerHTML = ''
+    this.#clearEmptyState()
     this.#input?.focus()
     void this.#sendMessage(text)
   }

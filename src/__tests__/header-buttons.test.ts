@@ -29,9 +29,10 @@ describe('Panel header buttons', () => {
     expect(header.setPointerCapture).not.toHaveBeenCalled()
 
     clearButton.click()
-    // Clearing an empty conversation is a no-op observable via the empty-state
-    // still rendering starters/icebreakers without throwing.
-    expect(chat.shadowRoot?.querySelector('[part="empty-state"]')).not.toBeNull()
+    // Clearing an empty conversation is a no-op observable via the panel
+    // still rendering (Starters/Icebreakers re-render into the transcript)
+    // without throwing.
+    expect(chat.shadowRoot?.querySelector('[part="transcript"]')).not.toBeNull()
   })
 
   it('Close button click is not swallowed by the header drag handle', async () => {

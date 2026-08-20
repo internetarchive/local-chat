@@ -55,6 +55,12 @@ but prompted explicitly as opening questions grounded in Context rather
 than a reply to a prior response. Has no effect if `max-followups` is
 `0`, since that's what governs how many get generated either way.
 
+**`empty-message`** (attribute or property, property wins): the Empty
+message shown before the first message has been sent, when neither a
+Starter nor an Icebreaker exists yet to show instead. Has a sensible
+built-in default describing the Widget as an on-device AI chat; a host
+that sets this replaces the default entirely.
+
 **`collapsed`** (attribute): the Widget's initial visibility state.
 Defaults to Collapsed — this is what happens whether the attribute is
 absent, present with no value, or set to anything other than the literal
@@ -213,22 +219,28 @@ origin's `localStorage`.
    language comes from `document.documentElement.lang` (first subtag,
    lowercased), falling back to `en` when unset or not currently one of
    the model's supported languages (`de`, `en`, `es`, `fr`, `ja`).
-2. Once priming completes: any host-provided `starters` are shown
-   immediately in the empty Conversation view. If `icebreakers` is set
-   (and `max-followups` is not `0`), a non-streaming call on a Scratch
-   Session cloned from the Parent Session — the same mechanism and schema
-   as a Follow-up, but prompted to suggest opening questions grounded in
-   Context instead — generates additional Icebreaker pills alongside
-   them. Icebreakers are cached for the Parent Session's lifetime, not
-   regenerated per Conversation. Rendered on first Expand, or immediately
-   if priming already finished before the user expanded the Widget.
-   `max-followups` is a cap, not a quota: the prompt explicitly permits
-   (and for Icebreakers, steers toward) fewer than that many, including
-   none, rather than force-filling to the limit — and explicitly excludes
-   meta questions about the assistant itself (what it can do, how it
-   works), asking only for questions the Context can actually answer. No
+2. Once priming completes: any host-provided `starters` are rendered into
+   the transcript immediately (see ADR-0007 — the same container and
+   overflow handling Follow-ups use, not a separate container). If
+   `icebreakers` is set (and `max-followups` is not `0`), a non-streaming
+   call on a Scratch Session cloned from the Parent Session — the same
+   mechanism and schema as a Follow-up, but prompted to suggest opening
+   questions grounded in Context instead — generates additional Icebreaker
+   pills alongside them. Icebreakers are cached for the Parent Session's
+   lifetime, not regenerated per Conversation. Rendered on first Expand, or
+   immediately if priming already finished before the user expanded the
+   Widget. `max-followups` is a cap, not a quota: the prompt explicitly
+   permits (and for Icebreakers, steers toward) fewer than that many,
+   including none, rather than force-filling to the limit — and explicitly
+   excludes meta questions about the assistant itself (what it can do, how
+   it works), asking only for questions the Context can actually answer. No
    pills container renders at all when a generation call resolves to zero
-   suggestions.
+   suggestions. When neither a Starter nor an Icebreaker ends up rendered,
+   the Empty message shows instead — checked directly against the
+   transcript's actual rendered content, not a separately-tracked flag, so
+   it's never out of sync with what's visible. Cleared for good, along
+   with any Starter/Icebreaker pills still showing, the moment a message is
+   sent or History is restored (step 3).
 3. Sending the first message (typed, or a clicked Starter/Icebreaker)
    forks a Child Session from the Parent Session.
 4. Each user message is sent via a streaming call on the Child Session, no

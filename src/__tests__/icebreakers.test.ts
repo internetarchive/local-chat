@@ -65,7 +65,7 @@ describe('Icebreakers', () => {
     expect(chat.shadowRoot?.querySelector('[part="icebreakers"]')).toBeNull()
   })
 
-  it('renders Icebreakers as clickable pills in the empty Conversation view', async () => {
+  it('renders Icebreakers as clickable pills in the transcript', async () => {
     setUpChat('["Q1?", "Q2?"]')
     const chat = mount()
     chat.setAttribute('icebreakers', '')
