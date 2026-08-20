@@ -235,12 +235,12 @@ origin's `localStorage`.
    excludes meta questions about the assistant itself (what it can do, how
    it works), asking only for questions the Context can actually answer. No
    pills container renders at all when a generation call resolves to zero
-   suggestions. When neither a Starter nor an Icebreaker ends up rendered,
-   the Empty message shows instead — checked directly against the
-   transcript's actual rendered content, not a separately-tracked flag, so
-   it's never out of sync with what's visible. Cleared for good, along
-   with any Starter/Icebreaker pills still showing, the moment a message is
-   sent or History is restored (step 3).
+   suggestions. The Empty message occupies `empty-state` up front, before
+   either is known — the first Starter or Icebreaker pill to actually
+   land in the transcript dismisses it, the same way any transcript
+   append would. Cleared for good, along with any Starter/Icebreaker
+   pills still showing, the moment a message is sent or History is
+   restored (step 3).
 3. Sending the first message (typed, or a clicked Starter/Icebreaker)
    forks a Child Session from the Parent Session.
 4. Each user message is sent via a streaming call on the Child Session, no

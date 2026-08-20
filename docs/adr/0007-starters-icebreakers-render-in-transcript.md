@@ -56,12 +56,18 @@ already cleared it before.
   Starters/Icebreakers container gets different content there now (a
   plain message, not pills) — a breaking change, accepted per the above.
 - New `empty-message` attribute/property (default text describing the
-  Widget as an on-device AI chat), shown/hidden based on whether the
-  transcript currently holds any Starter/Icebreaker pill — checked
-  directly against the rendered DOM rather than tracked via a separate
-  flag, so it can never drift out of sync with what's actually visible.
-- Clearing the pre-conversation state (on first real message, on History
-  restore, and implicitly via the transcript wipe on Clear) now needs to
-  remove Starter/Icebreaker pill containers from the transcript in
-  addition to resetting the Empty message text — both handled by one
-  shared helper rather than duplicated at each call site.
+  Widget as an on-device AI chat). It's placed into `empty-state` up
+  front, before anything is known about Starters/Icebreakers; the single
+  shared `#appendToTranscript()` helper dismisses it as a side effect of
+  any transcript append, Starter/Icebreaker pill or real message bubble
+  alike — no separate "does the transcript have pills yet" check needed,
+  since dismissal falls out of the same code path that already places
+  content in the transcript.
+- Clearing the pre-conversation state on a real Exchange's first message
+  or on History restore only needs to remove any lingering Starter/
+  Icebreaker pill containers now — the Empty message itself is left to
+  the next transcript append (the message bubble that's about to follow
+  synchronously) to dismiss. Clear resets the Empty message text
+  explicitly, since it wipes the transcript outright and then re-renders
+  Starters/Icebreakers, which dismiss it again if they have anything to
+  show.

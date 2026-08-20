@@ -447,6 +447,7 @@ export class LocalChat extends HTMLElement {
 
     this.#emptyState = document.createElement('div')
     this.#emptyState.setAttribute('part', 'empty-state')
+    this.#emptyState.textContent = this.emptyMessage
     this.#panel.appendChild(this.#emptyState)
 
     this.#transcript = document.createElement('div')
@@ -544,7 +545,7 @@ export class LocalChat extends HTMLElement {
     const exchanges = readHistory(this.historyKey, this.maxHistory)
     if (exchanges.length === 0) return
     this.#conversationStarted = true
-    this.#clearEmptyState()
+    this.#removeOpeningPills()
     for (const exchange of exchanges) {
       this.#appendMessageBubble('user', exchange.user)
       const bubble = this.#appendMessageBubble('assistant', '')
@@ -747,30 +748,14 @@ export class LocalChat extends HTMLElement {
 
   #renderStarters(): void {
     const starters = this.starters
-    if (starters.length > 0) {
-      const container = this.#renderPills('starter', starters, (text) => this.#submitText(text))
-      this.#appendToTranscript(container)
-    }
-    this.#updateEmptyMessage()
+    if (starters.length === 0) return
+    const container = this.#renderPills('starter', starters, (text) => this.#submitText(text))
+    this.#appendToTranscript(container)
   }
 
-  /**
-   * Shows the Empty message only once it's clear neither a Starter nor an
-   * Icebreaker is going to appear in its place -- checked directly against
-   * the transcript's rendered content rather than a separately-tracked flag,
-   * so it can never drift out of sync with what's actually visible. A no-op
-   * once a real Exchange has started; #clearEmptyState handles that case.
-   */
-  #updateEmptyMessage(): void {
-    if (!this.#emptyState || this.#conversationStarted) return
-    const hasPills = !!this.#transcript?.querySelector('[part="starters"], [part="icebreakers"]')
-    this.#emptyState.textContent = hasPills ? '' : this.emptyMessage
-  }
-
-  /** Removes any Starter/Icebreaker pills and the Empty message -- shared by every path that starts a real Exchange. */
-  #clearEmptyState(): void {
+  /** Removes any Starter/Icebreaker pills still showing -- used wherever a real Exchange is about to begin, so the pre-conversation suggestions don't linger alongside it. */
+  #removeOpeningPills(): void {
     this.#transcript?.querySelectorAll('[part="starters"], [part="icebreakers"]').forEach((el) => el.remove())
-    if (this.#emptyState) this.#emptyState.textContent = ''
   }
 
   #combinedContext(): string {
@@ -903,12 +888,9 @@ export class LocalChat extends HTMLElement {
     // #supersedeInFlightScratchSessions only catches generation already in
     // flight at send-time, so this is the last line of defense against
     // rendering into a transcript nobody is looking at anymore.
-    if (this.#conversationStarted) return
-    if (this.#icebreakerOptions && this.#icebreakerOptions.length > 0) {
-      const container = this.#renderPills('icebreaker', this.#icebreakerOptions, (text) => this.#submitText(text))
-      this.#appendToTranscript(container)
-    }
-    this.#updateEmptyMessage()
+    if (this.#conversationStarted || !this.#icebreakerOptions || this.#icebreakerOptions.length === 0) return
+    const container = this.#renderPills('icebreaker', this.#icebreakerOptions, (text) => this.#submitText(text))
+    this.#appendToTranscript(container)
   }
 
   #childSessionPromise: Promise<LanguageModelSession> | undefined
@@ -932,8 +914,11 @@ export class LocalChat extends HTMLElement {
    * Appends `el` to the transcript, auto-scrolling to reveal it only if the
    * user was already scrolled at (or very near) the bottom beforehand --
    * never yanking them down mid-read or while reviewing earlier messages.
+   * Dismisses the Empty message first -- anything landing in the transcript,
+   * a Starter/Icebreaker pill included, means it's no longer the empty view.
    */
   #appendToTranscript(el: HTMLElement): void {
+    if (this.#emptyState) this.#emptyState.textContent = ''
     this.#autoScrollTranscript(() => this.#transcript?.appendChild(el))
   }
 
@@ -995,13 +980,13 @@ export class LocalChat extends HTMLElement {
     this.#conversationStarted = false
     clearHistory(this.historyKey)
     if (this.#transcript) this.#transcript.innerHTML = ''
-    this.#clearEmptyState()
+    if (this.#emptyState) this.#emptyState.textContent = this.emptyMessage
     this.#renderStarters()
     this.#renderIcebreakers()
   }
 
   #submitText(text: string): void {
-    this.#clearEmptyState()
+    this.#removeOpeningPills()
     this.#input?.focus()
     void this.#sendMessage(text)
   }
