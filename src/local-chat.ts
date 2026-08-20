@@ -130,13 +130,25 @@ const WIDGET_STYLES = `
     display: none;
   }
   [part="empty-state"] {
-    padding: 0.5em;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1em;
+    text-align: center;
+    color: var(--local-chat-empty-state-color, #777);
   }
   [part="transcript"] {
     flex: 1;
     overflow-y: auto;
     min-height: 0;
     padding: 0.5em;
+  }
+  /* Occupies zero space itself while it has nothing to show, so the sibling
+     empty-state (also flex: 1) gets the full remaining panel height instead
+     of an even, half-empty split between the two. */
+  [part="transcript"]:empty {
+    flex: 0;
   }
   [part~="message"] {
     display: inline-block;
