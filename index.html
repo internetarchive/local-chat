@@ -13,19 +13,77 @@
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E💬%3C/text%3E%3C/svg%3E"
     />
     <style>
+      :root {
+        --docs-bg: #fff;
+        --docs-color: #1a1a1a;
+        --docs-muted: #555;
+        --docs-border: #ddd;
+        --docs-code-bg: #f5f5f5;
+        color-scheme: light;
+      }
+      /* Auto-switches to dark, only when the theme switcher below hasn't set
+         an explicit choice yet -- mutually exclusive with the
+         [data-theme="dark"] rule by construction (absence vs. presence of
+         the same attribute), matching local-chat's own ADR-0009 mechanism. */
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme]) {
+          --docs-bg: #1e1e1e;
+          --docs-color: #eee;
+          --docs-muted: #999;
+          --docs-border: #444;
+          --docs-code-bg: #2a2a2a;
+          color-scheme: dark;
+        }
+      }
+      :root[data-theme="dark"] {
+        --docs-bg: #1e1e1e;
+        --docs-color: #eee;
+        --docs-muted: #999;
+        --docs-border: #444;
+        --docs-code-bg: #2a2a2a;
+        color-scheme: dark;
+      }
       body {
         font-family: system-ui, sans-serif;
         max-width: 42rem;
         margin: 3rem auto;
         line-height: 1.6;
         padding: 0 1rem;
-        color: #1a1a1a;
+        background: var(--docs-bg);
+        color: var(--docs-color);
       }
       h1 {
         margin-bottom: 0.2em;
       }
+      /* Fixed to the top-right corner, independent of the header's own text
+         flow -- mirrors the chat widget's own bottom-right anchoring below,
+         rather than fighting flexbox alignment against a heading + tagline
+         of variable height. */
+      .theme-switcher {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        display: flex;
+        gap: 0.25rem;
+        z-index: 10;
+      }
+      .theme-switcher button {
+        font: inherit;
+        font-size: 1rem;
+        line-height: 1;
+        cursor: pointer;
+        border: 1px solid var(--docs-border);
+        background: none;
+        color: inherit;
+        border-radius: 6px;
+        padding: 0.35em 0.5em;
+      }
+      .theme-switcher button[aria-pressed="true"] {
+        background: var(--docs-code-bg);
+        border-color: var(--docs-muted);
+      }
       .tagline {
-        color: #555;
+        color: var(--docs-muted);
         margin-top: 0;
       }
       code,
@@ -34,14 +92,14 @@
         font-size: 0.9em;
       }
       pre {
-        background: #f5f5f5;
-        border: 1px solid #ddd;
+        background: var(--docs-code-bg);
+        border: 1px solid var(--docs-border);
         border-radius: 0.4em;
         padding: 1em;
         overflow-x: auto;
       }
       code {
-        background: #f5f5f5;
+        background: var(--docs-code-bg);
         padding: 0.15em 0.35em;
         border-radius: 0.3em;
       }
@@ -58,18 +116,18 @@
       td {
         text-align: left;
         vertical-align: top;
-        border-bottom: 1px solid #ddd;
+        border-bottom: 1px solid var(--docs-border);
         padding: 0.5em 0.75em 0.5em 0;
       }
       th {
-        color: #555;
+        color: var(--docs-muted);
         font-weight: 600;
       }
       footer {
-        color: #777;
+        color: var(--docs-muted);
         font-size: 0.9em;
         margin-top: 3em;
-        border-top: 1px solid #ddd;
+        border-top: 1px solid var(--docs-border);
         padding-top: 1em;
         text-align: center;
       }
@@ -77,8 +135,28 @@
         color: inherit;
       }
     </style>
+    <script>
+      // Blocking (not type="module", not deferred) so it runs before the
+      // body paints -- applies a previously-chosen theme immediately,
+      // avoiding a flash of the wrong theme for a returning visitor. Only
+      // ever sets the attribute an explicit choice already exists for;
+      // "system" (the default, nothing stored) is left to the
+      // prefers-color-scheme media query above, same as local-chat's own
+      // unset color-scheme.
+      ;(function () {
+        var stored = localStorage.getItem('local-chat-site-theme')
+        if (stored === 'light' || stored === 'dark') {
+          document.documentElement.setAttribute('data-theme', stored)
+        }
+      })()
+    </script>
   </head>
   <body>
+    <div class="theme-switcher" role="group" aria-label="Color theme">
+      <button type="button" id="theme-light" aria-label="Light theme" aria-pressed="false">☀️</button>
+      <button type="button" id="theme-dark" aria-label="Dark theme" aria-pressed="false">🌙</button>
+      <button type="button" id="theme-system" aria-label="Match system theme" aria-pressed="false">🖥️</button>
+    </div>
     <header>
       <h1>💬 Local Chat</h1>
       <p class="tagline">
@@ -367,5 +445,49 @@ local-chat::part(panel) {
       collapsed="false"
     ></local-chat>
     <script type="module" src="/src/index.ts"></script>
+    <script type="module">
+      // Three-way theme switcher (light/dark/system), persisted the same way a
+      // typical site's theme picker is -- "system" is stored explicitly too
+      // (not just "nothing stored"), so re-selecting it after choosing
+      // light/dark is distinguishable from a first-ever visit. The embedded
+      // chat widget follows the same choice: "system" clears its own
+      // color-scheme override, letting local-chat's own prefers-color-scheme
+      // handling take over (see ADR-0009) -- which naturally matches this
+      // page's own "system" behavior too.
+      const THEME_STORAGE_KEY = 'local-chat-site-theme'
+      const chat = document.querySelector('local-chat')
+      const themeButtons = {
+        light: document.querySelector('#theme-light'),
+        dark: document.querySelector('#theme-dark'),
+        system: document.querySelector('#theme-system'),
+      }
+
+      function applyTheme(theme) {
+        if (theme === 'light' || theme === 'dark') {
+          document.documentElement.setAttribute('data-theme', theme)
+        } else {
+          document.documentElement.removeAttribute('data-theme')
+        }
+        for (const [choice, button] of Object.entries(themeButtons)) {
+          button.setAttribute('aria-pressed', String(choice === theme))
+        }
+        chat.colorScheme = theme === 'system' ? undefined : theme
+      }
+
+      // Only an explicit click persists a choice -- the initial load below
+      // just applies whatever's already stored (or "system" if nothing is),
+      // so a visitor who never touches the switcher never gets "system"
+      // written on their behalf.
+      function chooseTheme(theme) {
+        localStorage.setItem(THEME_STORAGE_KEY, theme)
+        applyTheme(theme)
+      }
+
+      for (const [choice, button] of Object.entries(themeButtons)) {
+        button.addEventListener('click', () => chooseTheme(choice))
+      }
+
+      applyTheme(localStorage.getItem(THEME_STORAGE_KEY) || 'system')
+    </script>
   </body>
 </html>
