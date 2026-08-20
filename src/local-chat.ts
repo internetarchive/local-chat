@@ -268,7 +268,14 @@ const WIDGET_STYLES = `
   [part="followup"] {
     border: 1px solid var(--local-chat-accent, #2563eb);
     background: none;
-    color: var(--local-chat-accent, #2563eb);
+    /* Regular text color, not accent -- a pill's background is transparent,
+       so its text sits directly on the panel's own background. Reusing the
+       same color already guaranteed to contrast with that background (see
+       ADR-0009) keeps pills legible regardless of what a host points accent
+       at, which has no such guarantee since it's otherwise only ever used
+       as a solid fill paired with accent-color. The border alone is enough
+       to set a pill apart from a plain message. */
+    color: var(--local-chat-color, var(--_local-chat-color));
     border-radius: 1em;
     padding: 0.3em 0.8em;
     font-size: 0.85em;
@@ -284,10 +291,14 @@ const WIDGET_STYLES = `
     border-top: 1px solid var(--local-chat-border-color, var(--_local-chat-border-color));
   }
   [part="status-download"] {
+    /* Solid fill, matching send -- a call-to-action (without it, the
+       Widget never becomes usable at all), not a suggestion chip, and
+       solid accent + accent-color together are always self-contained
+       contrast regardless of what either is set to (see ADR-0009). */
     flex-shrink: 0;
-    border: 1px solid var(--local-chat-accent, #2563eb);
-    background: none;
-    color: var(--local-chat-accent, #2563eb);
+    border: none;
+    background: var(--local-chat-accent, #2563eb);
+    color: var(--local-chat-accent-color, #fff);
     border-radius: 0.3em;
     padding: 0.15em 0.5em;
     font: inherit;

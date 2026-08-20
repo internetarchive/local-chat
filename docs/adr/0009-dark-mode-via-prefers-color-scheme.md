@@ -96,3 +96,19 @@ dark surface, and nothing in the design called for a second accent pair.
   internal field made sense there. Here, the DOM attribute itself is what
   CSS keys off, so the property setter has to actually reflect it for a
   JS-set value to render at all.
+- Follow-up fix, found via real-world use: Starter/Icebreaker/Followup
+  pills and the status bar's download button both used to set `color` to
+  `--local-chat-accent` directly, on top of a transparent background — a
+  host's own page shows through, so pill text sits directly on the panel's
+  current background. That's a fundamentally different usage than accent's
+  other two jobs (a solid fill paired with `--local-chat-accent-color`,
+  always self-contained contrast regardless of what either resolves to):
+  a value chosen for good contrast against a light panel has no such
+  guarantee against a dark one, or vice versa. Fixed by reusing
+  `--local-chat-color` for pill text instead (already guaranteed to
+  contrast with `--local-chat-background`, since that's its whole job) —
+  the border alone still sets a pill apart from a plain message. The
+  download button went the other way: reclassified as a solid accent fill
+  like `send`, since it's a call-to-action (without it, the Widget never
+  becomes usable) rather than a suggestion chip, sidestepping the same
+  contrast risk entirely rather than working around it.
