@@ -238,6 +238,15 @@
                 "Local Chat" when unset.
               </td>
             </tr>
+            <tr>
+              <td><code>color-scheme</code></td>
+              <td>
+                Forces <code>"light"</code> or <code>"dark"</code> mode regardless of the OS/browser's dark-mode
+                preference. Unset (or any other value) follows that preference instead, via a built-in dark palette
+                on every themed custom property below — see Styling. Also available as a property, directly
+                reflected onto the attribute.
+              </td>
+            </tr>
           </tbody>
         </table>
       </section>
@@ -306,7 +315,10 @@
         <h2>Styling</h2>
         <p>
           The widget renders in a Shadow DOM, themeable from the host page via CSS custom properties and
-          <code>::part()</code>:
+          <code>::part()</code>. Every custom property below overrides its value in both light and dark mode at
+          once — the values shown are the light-mode defaults; each already has a built-in dark-mode default too,
+          auto-switching with the OS/browser's preference (or forced either way via the <code>color-scheme</code>
+          attribute) unless you override it here:
         </p>
         <pre><code>local-chat {
   --local-chat-font-family: system-ui, sans-serif;
@@ -321,6 +333,7 @@
   --local-chat-code-background: #e5e5e5;
   --local-chat-status-color: #777;
   --local-chat-empty-state-color: #777;
+  --local-chat-shadow-color: rgba(0, 0, 0, 0.25);
 }
 
 local-chat::part(panel) {

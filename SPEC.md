@@ -89,6 +89,16 @@ so reading it picks up whichever was set (attribute or JS property
 assignment) without shadowing the built-in tooltip behavior a host might
 also rely on. Defaults to `"Local Chat"` when unset.
 
+**`color-scheme`** (attribute or property, directly reflected — not the
+override-field pattern the rest of this list uses, see ADR-0009): forces
+the Widget into `"light"` or `"dark"` mode regardless of the OS/browser's
+`prefers-color-scheme` preference. Absent (or any other value) follows
+that OS preference instead, via a built-in dark palette applied to every
+themed CSS custom property — see Styling. A host with its own light/dark
+toggle (driven by something other than the OS setting) sets this from
+its own toggle handler; nothing auto-detects a host's own convention (a
+class on `<html>`, `data-theme`, or otherwise).
+
 **`max-history`** (attribute): non-negative integer, caps how many
 Exchanges are kept in History. `0` disables History entirely — nothing is
 read on Expand, nothing is written after a response, Clear has nothing
@@ -360,7 +370,11 @@ absent until the visitor actually changes it from its default.
   designed for incremental/partial input the way a streaming response
   produces it.
 - **Styling**: Shadow DOM with CSS custom properties + `::part()` for
-  host theming, matching standard web-component practice.
+  host theming, matching standard web-component practice. Every themed
+  color property has a built-in light and dark default (auto-switching
+  via `prefers-color-scheme`, overridable per-property regardless of
+  mode, and forceable to one mode via `color-scheme` — see ADR-0009);
+  accent colors don't vary between modes.
 - **Observability**: dispatches basic lifecycle events (message sent,
   response received, error, expanded, collapsed) even though full
   headless/custom-UI mode is deferred — costs nothing to include and gives

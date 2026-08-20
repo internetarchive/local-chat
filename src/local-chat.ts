@@ -8,6 +8,45 @@ const WIDGET_STYLES = `
     all: initial;
     font-family: var(--local-chat-font-family, system-ui, sans-serif);
     font-size: var(--local-chat-font-size, 0.9rem);
+    /* Private light defaults (see ADR-0009) -- never the public
+       --local-chat-x property itself, so a host's own override of that
+       property (the only thing that can ever set it) always wins with no
+       specificity contest. */
+    --_local-chat-background: #fff;
+    --_local-chat-color: #111;
+    --_local-chat-border-color: #ccc;
+    --_local-chat-assistant-background: #f0f0f0;
+    --_local-chat-code-background: #e5e5e5;
+    --_local-chat-dim-color: #777;
+    --_local-chat-shadow-color: rgba(0, 0, 0, 0.25);
+    color-scheme: light;
+  }
+  /* Auto-switches the private defaults to dark, only when the host hasn't
+     forced a mode explicitly -- mutually exclusive with the
+     [color-scheme="dark"] rule below by construction (absence vs.
+     presence of the same attribute), so there's no specificity contest
+     between an OS preference and an explicit override either. */
+  @media (prefers-color-scheme: dark) {
+    :host(:not([color-scheme])) {
+      --_local-chat-background: #1e1e1e;
+      --_local-chat-color: #eee;
+      --_local-chat-border-color: #444;
+      --_local-chat-assistant-background: #2a2a2a;
+      --_local-chat-code-background: #333;
+      --_local-chat-dim-color: #999;
+      --_local-chat-shadow-color: rgba(0, 0, 0, 0.5);
+      color-scheme: dark;
+    }
+  }
+  :host([color-scheme="dark"]) {
+    --_local-chat-background: #1e1e1e;
+    --_local-chat-color: #eee;
+    --_local-chat-border-color: #444;
+    --_local-chat-assistant-background: #2a2a2a;
+    --_local-chat-code-background: #333;
+    --_local-chat-dim-color: #999;
+    --_local-chat-shadow-color: rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
   }
   button {
     font: inherit;
@@ -43,7 +82,7 @@ const WIDGET_STYLES = `
     background: var(--local-chat-accent, #2563eb);
     color: var(--local-chat-accent-color, #fff);
     font-size: 1.4rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 2px 8px var(--local-chat-shadow-color, var(--_local-chat-shadow-color));
   }
   [part="toggle"] img {
     width: 1.6rem;
@@ -61,11 +100,11 @@ const WIDGET_STYLES = `
     max-height: 90vh;
     overflow: hidden;
     box-sizing: border-box;
-    background: var(--local-chat-background, #fff);
-    color: var(--local-chat-color, #111);
-    border: 1px solid var(--local-chat-border-color, #ccc);
+    background: var(--local-chat-background, var(--_local-chat-background));
+    color: var(--local-chat-color, var(--_local-chat-color));
+    border: 1px solid var(--local-chat-border-color, var(--_local-chat-border-color));
     border-radius: var(--local-chat-radius, 0.5rem);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 16px var(--local-chat-shadow-color, var(--_local-chat-shadow-color));
   }
   [part="resize-handle"] {
     position: absolute;
@@ -73,8 +112,8 @@ const WIDGET_STYLES = `
     left: 0.35rem;
     width: 0.6rem;
     height: 0.6rem;
-    border-top: 2px solid var(--local-chat-border-color, #ccc);
-    border-left: 2px solid var(--local-chat-border-color, #ccc);
+    border-top: 2px solid var(--local-chat-border-color, var(--_local-chat-border-color));
+    border-left: 2px solid var(--local-chat-border-color, var(--_local-chat-border-color));
     cursor: nwse-resize;
     touch-action: none;
   }
@@ -90,7 +129,7 @@ const WIDGET_STYLES = `
     cursor: move;
     touch-action: none;
     user-select: none;
-    border-bottom: 1px solid var(--local-chat-border-color, #ccc);
+    border-bottom: 1px solid var(--local-chat-border-color, var(--_local-chat-border-color));
   }
   [part="logo"] {
     display: inline-flex;
@@ -120,7 +159,7 @@ const WIDGET_STYLES = `
     width: 1.8em;
     height: 1.8em;
     overflow: hidden;
-    border: 1px solid var(--local-chat-border-color, #ccc);
+    border: 1px solid var(--local-chat-border-color, var(--_local-chat-border-color));
     background: none;
     color: inherit;
     border-radius: 0.3em;
@@ -136,7 +175,7 @@ const WIDGET_STYLES = `
     justify-content: center;
     padding: 1em;
     text-align: center;
-    color: var(--local-chat-empty-state-color, #777);
+    color: var(--local-chat-empty-state-color, var(--_local-chat-dim-color));
   }
   [part="transcript"] {
     flex: 1;
@@ -187,7 +226,7 @@ const WIDGET_STYLES = `
     max-width: 100%;
     overflow-x: auto;
     box-sizing: border-box;
-    background: var(--local-chat-code-background, #e5e5e5);
+    background: var(--local-chat-code-background, var(--_local-chat-code-background));
     padding: 0.6em 0.75em;
     border-radius: 0.4em;
   }
@@ -198,7 +237,7 @@ const WIDGET_STYLES = `
        already-matching background, with no visible difference. Padding/
        radius here are for inline code specifically; reset back to 0 for
        code inside pre just below, since pre already provides its own. */
-    background: var(--local-chat-code-background, #e5e5e5);
+    background: var(--local-chat-code-background, var(--_local-chat-code-background));
     padding: 0 0.15em;
     border-radius: 0.25em;
   }
@@ -215,7 +254,7 @@ const WIDGET_STYLES = `
   [part~="message-assistant"] {
     display: block;
     margin-inline-end: auto;
-    background: var(--local-chat-assistant-background, #f0f0f0);
+    background: var(--local-chat-assistant-background, var(--_local-chat-assistant-background));
   }
   [part="starters"],
   [part="icebreakers"],
@@ -242,8 +281,8 @@ const WIDGET_STYLES = `
     gap: 0.5em;
     padding: 0.4em 0.6em;
     font-size: 0.8em;
-    color: var(--local-chat-status-color, #777);
-    border-top: 1px solid var(--local-chat-border-color, #ccc);
+    color: var(--local-chat-status-color, var(--_local-chat-dim-color));
+    border-top: 1px solid var(--local-chat-border-color, var(--_local-chat-border-color));
   }
   [part="status-download"] {
     flex-shrink: 0;
@@ -259,17 +298,17 @@ const WIDGET_STYLES = `
     align-items: flex-end;
     gap: 0.4em;
     padding: 0.5em;
-    border-top: 1px solid var(--local-chat-border-color, #ccc);
+    border-top: 1px solid var(--local-chat-border-color, var(--_local-chat-border-color));
   }
   [part="input"] {
     flex: 1;
     box-sizing: border-box;
-    border: 1px solid var(--local-chat-border-color, #ccc);
+    border: 1px solid var(--local-chat-border-color, var(--_local-chat-border-color));
     border-radius: 0.3em;
     padding: 0.4em 0.6em;
     font: inherit;
     color: inherit;
-    background: var(--local-chat-background, #fff);
+    background: var(--local-chat-background, var(--_local-chat-background));
     resize: none;
     max-height: 8em;
     overflow-y: auto;
@@ -734,6 +773,25 @@ export class LocalChat extends HTMLElement {
 
   set logo(value: string) {
     this.#logoOverride = value
+  }
+
+  /**
+   * Directly reflected onto the `color-scheme` attribute -- unlike the rest
+   * of this file's overridable properties, CSS itself (not just JS) keys off
+   * this attribute's presence/value (see ADR-0009), so the setter has to
+   * actually write it for a JS-set value to have any visible effect.
+   */
+  get colorScheme(): 'light' | 'dark' | undefined {
+    const value = this.getAttribute('color-scheme')
+    return value === 'light' || value === 'dark' ? value : undefined
+  }
+
+  set colorScheme(value: 'light' | 'dark' | undefined) {
+    if (value === undefined) {
+      this.removeAttribute('color-scheme')
+    } else {
+      this.setAttribute('color-scheme', value)
+    }
   }
 
   /**
