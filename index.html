@@ -24,7 +24,8 @@
       /* Auto-switches to dark, only when the theme switcher below hasn't set
          an explicit choice yet -- mutually exclusive with the
          [data-theme="dark"] rule by construction (absence vs. presence of
-         the same attribute), matching local-chat's own ADR-0009 mechanism. */
+         the same attribute), so there's no specificity contest between an
+         OS preference and an explicit choice either. */
       @media (prefers-color-scheme: dark) {
         :root:not([data-theme]) {
           --docs-bg: #1e1e1e;
@@ -452,8 +453,8 @@ local-chat::part(panel) {
       // light/dark is distinguishable from a first-ever visit. The embedded
       // chat widget follows the same choice: "system" clears its own
       // color-scheme override, letting local-chat's own prefers-color-scheme
-      // handling take over (see ADR-0009) -- which naturally matches this
-      // page's own "system" behavior too.
+      // handling take over -- which naturally matches this page's own
+      // "system" behavior too.
       const THEME_STORAGE_KEY = 'local-chat-site-theme'
       const chat = document.querySelector('local-chat')
       const themeButtons = {

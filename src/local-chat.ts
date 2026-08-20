@@ -8,10 +8,9 @@ const WIDGET_STYLES = `
     all: initial;
     font-family: var(--local-chat-font-family, system-ui, sans-serif);
     font-size: var(--local-chat-font-size, 0.9rem);
-    /* Private light defaults (see ADR-0009) -- never the public
-       --local-chat-x property itself, so a host's own override of that
-       property (the only thing that can ever set it) always wins with no
-       specificity contest. */
+    /* Private light defaults -- never the public --local-chat-x property
+       itself, so a host's own override of that property (the only thing
+       that can ever set it) always wins with no specificity contest. */
     --_local-chat-background: #fff;
     --_local-chat-color: #111;
     --_local-chat-border-color: #ccc;
