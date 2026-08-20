@@ -1,3 +1,5 @@
+import { resolveStorageScope } from './storage-scope.js'
+
 export interface Exchange {
   user: string
   assistant: string
@@ -11,26 +13,8 @@ interface StoredHistory {
   exchanges: Exchange[]
 }
 
-/**
- * Resolves a `history-key` attribute value to the actual storage key.
- * `localStorage` is already origin-partitioned by the browser, so none of
- * these need to embed the origin explicitly.
- */
-export function resolveHistoryKey(value: string): string {
-  switch (value) {
-    case 'origin':
-      return 'origin'
-    case 'path':
-      return location.pathname
-    case 'url':
-      return `${location.pathname}${location.search}`
-    default:
-      return value
-  }
-}
-
 function storageKeyFor(key: string): string {
-  return `${STORAGE_PREFIX}${resolveHistoryKey(key)}`
+  return `${STORAGE_PREFIX}${resolveStorageScope(key)}`
 }
 
 function isExchange(value: unknown): value is Exchange {

@@ -45,26 +45,26 @@ describe('maxHistory', () => {
   })
 })
 
-describe('historyKey', () => {
+describe('storageKey', () => {
   afterEach(() => {
     document.body.innerHTML = ''
     delete (globalThis as { LanguageModel?: unknown }).LanguageModel
   })
 
-  it('defaults to "url" when history-key is unset', async () => {
+  it('defaults to "url" when storage-key is unset', async () => {
     ;(globalThis as { LanguageModel?: unknown }).LanguageModel = mockLanguageModel()
     const chat = mount()
     await flushMicrotasks()
 
-    expect(chat.historyKey).toBe('url')
+    expect(chat.storageKey).toBe('url')
   })
 
-  it('reads the history-key attribute verbatim', async () => {
+  it('reads the storage-key attribute verbatim', async () => {
     ;(globalThis as { LanguageModel?: unknown }).LanguageModel = mockLanguageModel()
     const chat = mount()
-    chat.setAttribute('history-key', 'my-app')
+    chat.setAttribute('storage-key', 'my-app')
     await flushMicrotasks()
 
-    expect(chat.historyKey).toBe('my-app')
+    expect(chat.storageKey).toBe('my-app')
   })
 })

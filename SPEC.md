@@ -61,13 +61,16 @@ Starter nor an Icebreaker exists yet to show instead. Has a sensible
 built-in default describing the Widget as an on-device AI chat; a host
 that sets this replaces the default entirely.
 
-**`collapsed`** (attribute): the Widget's initial visibility state.
-Defaults to Collapsed — this is what happens whether the attribute is
-absent, present with no value, or set to anything other than the literal
-string `"false"`. Set `collapsed="false"` explicitly to start Expanded
-instead. (A plain presence/absence boolean attribute can't express "the
-default, with nothing set, is the true state" — hence the explicit-string
-override instead of the usual HTML boolean-attribute convention.)
+**`collapsed`** (attribute): the Widget's initial visibility state, used
+only the very first time — in the current tab/session — that no Visual
+state has been persisted yet for the resolved `storage-key` scope (see
+Visual state). Defaults to Collapsed — this is what happens whether the
+attribute is absent, present with no value, or set to anything other than
+the literal string `"false"`. Set `collapsed="false"` explicitly to start
+Expanded instead. (A plain presence/absence boolean attribute can't
+express "the default, with nothing set, is the true state" — hence the
+explicit-string override instead of the usual HTML boolean-attribute
+convention.)
 
 **`logo`** (attribute or property, property wins): overrides the default
 `💬` glyph, used both for the Collapsed toggle button and, in the panel
@@ -95,17 +98,18 @@ Conversation can continue, and on-device context windows are typically
 much smaller than cloud models — raise it if a host's model/context
 budget comfortably allows more).
 
-**`history-key`** (attribute): selects the storage scope for History.
-Three reserved keywords — matched to Web-platform vocabulary, since
-`localStorage` is already origin-partitioned by the browser and none of
-these need to embed the origin explicitly:
-- `origin`: one History shared across every page on the site.
+**`storage-key`** (attribute): selects the storage scope shared by History
+and Visual state (see their own sections below) — the same scope, one
+attribute, since a host wanting them scoped identically (the common case)
+gets that for free, and neither storage backend needs the origin embedded
+explicitly (both are already origin-partitioned by the browser). Three
+reserved keywords, matched to Web-platform vocabulary:
+- `origin`: shared across every page on the site.
 - `path`: scoped to `location.pathname` — query-string variations share
-  the same History.
+  the same scope.
 - `url` (default): scoped to `location.pathname + location.search` —
-  query-string variations get their own History. `location.hash` is never
-  part of the scope (conventionally an in-page anchor, not a distinct
-  page).
+  query-string variations get their own scope. `location.hash` is never
+  part of it (conventionally an in-page anchor, not a distinct page).
 
 Any other literal value is used verbatim as the storage key. The three
 keywords above are reserved — a custom key that happens to match one of
@@ -134,13 +138,13 @@ CSS selector can't reach) or when it's inserted into the DOM.
 ## History
 
 Stored in `localStorage` (see ADR-0006), internally namespaced under a
-fixed prefix regardless of the resolved `history-key` scope, so it can
+fixed prefix regardless of the resolved `storage-key` scope, so it can
 never collide with anything else the host page stores in the same
 origin's `localStorage`.
 
 1. On first Expand, before Parent Session establishment even begins:
    History is read synchronously from storage for the resolved
-   `history-key` scope. If non-empty, its Exchanges render into the
+   `storage-key` scope. If non-empty, its Exchanges render into the
    transcript immediately, independent of Parent Session's (comparatively
    slow) establishment — which still proceeds exactly as described in
    Generation flow step 1, concurrently. Marks the Conversation as
@@ -173,6 +177,38 @@ origin's `localStorage`.
    storage, unparseable or incompatible data from a prior format version —
    is treated identically to no History existing at all; it never
    surfaces as an error or breaks the Widget.
+
+## Visual state
+
+Stored in `sessionStorage`, not `localStorage` (see ADR-0008 for why),
+internally namespaced under its own fixed prefix — separate from
+History's — regardless of the resolved `storage-key` scope. One
+consolidated record per scope, covering Collapsed/Expanded, the toggle
+icon's position, the panel's position, and the panel's size (see
+CONTEXT.md's Visual state entry). Each field is independently optional,
+absent until the visitor actually changes it from its default.
+
+1. Each field is written only at the moment its own corresponding action
+   completes — a real Collapse/Expand transition (built-in toggle, close
+   button, Escape, a `trigger-selector` match, or a public method call, all
+   uniformly), a drag that actually moved the toggle or the panel, or a
+   resize that actually changed the panel's size. A plain click that didn't
+   move anything writes nothing. The very first state established at
+   render time is never itself treated as a transition, so it's never
+   persisted on its own (see the `collapsed` attribute above).
+2. A persisted field, once it exists, wins over whatever the Widget would
+   otherwise default to (the `collapsed` attribute, or the CSS-driven
+   default position/size) on every later load in the same tab/session —
+   applied before the Widget becomes visible, so there's no flash of the
+   default state first. Restoring a position re-applies the exact
+   left/right/top/bottom values a prior drag left it in, verbatim, rather
+   than re-deriving the nearer-edge anchor against the current viewport.
+3. Visual state is entirely independent of Clear (Generation flow step 7)
+   and of History — clearing the Conversation never resets the Widget's
+   position, size, or visibility, and vice versa.
+4. A storage failure of any kind is treated identically to nothing having
+   been persisted; it never surfaces as an error or breaks the Widget
+   (same posture as History).
 
 ## Triggers
 
@@ -292,7 +328,9 @@ origin's `localStorage`.
   reposition them, and resize the Expanded panel. The icon and panel each
   track their own dragged position independently (see ADR-0004) — moving
   one never affects the other, and either can be dragged fully outside
-  the viewport if the user does that.
+  the viewport if the user does that. Once changed, position and size
+  persist as Visual state (see its own section, and ADR-0008) the same way
+  Collapsed/Expanded does.
 - A host can override the initial position via plain CSS (targeting
   `::part(toggle)`/`::part(panel)`).
 - The Expanded panel includes a Clear control, resetting the Conversation

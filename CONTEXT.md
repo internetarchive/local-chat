@@ -113,3 +113,11 @@ A host-provided element, external to the Widget, that Expands/Collapses it
 methods. Distinct from the Widget's own built-in toggle button, which isn't
 a Trigger itself.
 _Avoid_: Launcher, invoker
+
+**Visual state**:
+Collapsed/Expanded, plus the toggle icon's and panel's dragged position and
+the panel's resized size — persisted only once the visitor actually changes
+one of them from its default, and only for the current tab/session, unlike
+History's durable, explicitly-cleared persistence. No dedicated affordance
+clears it; closing the tab does.
+_Avoid_: UI state, layout state, window state

@@ -38,7 +38,7 @@ describe('Clear purges persisted History', () => {
     const LM = mockLanguageModel({ parentSession })
     ;(globalThis as { LanguageModel?: unknown }).LanguageModel = LM
     const chat = mount()
-    chat.setAttribute('history-key', 'my-app')
+    chat.setAttribute('storage-key', 'my-app')
     await flushMicrotasks()
     expandWidget(chat)
     await flushMicrotasks()

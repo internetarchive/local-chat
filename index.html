@@ -191,19 +191,21 @@
               </td>
             </tr>
             <tr>
-              <td><code>history-key</code></td>
+              <td><code>storage-key</code></td>
               <td>
-                The storage scope Exchanges are saved under. <code>"url"</code> (default) scopes to the current path
-                and query string; <code>"path"</code> scopes to the path only (shared across query variations);
-                <code>"origin"</code> shares History across the entire site. Any other value is used verbatim as a
-                custom scope, shared by every page that sets the same <code>history-key</code>.
+                The storage scope shared by History and by the widget's own Visual state (open/closed, dragged
+                position, resized size). <code>"url"</code> (default) scopes to the current path and query string;
+                <code>"path"</code> scopes to the path only (shared across query variations); <code>"origin"</code>
+                shares both across the entire site. Any other value is used verbatim as a custom scope, shared by
+                every page that sets the same <code>storage-key</code>.
               </td>
             </tr>
             <tr>
               <td><code>collapsed</code></td>
               <td>
-                The widget's initial visibility state. Defaults to collapsed (a floating button) unless set to the
-                literal string <code>"false"</code>, which starts it expanded.
+                The widget's initial visibility state, used only the very first time nothing's been persisted yet
+                for the resolved <code>storage-key</code> scope (see Visual state below). Defaults to collapsed (a
+                floating button) unless set to the literal string <code>"false"</code>, which starts it expanded.
               </td>
             </tr>
             <tr>

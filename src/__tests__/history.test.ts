@@ -1,53 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { appendExchange, clearHistory, readHistory, resolveHistoryKey } from '../history.js'
+import { appendExchange, clearHistory, readHistory } from '../history.js'
 
 function navigateTo(path: string): void {
   window.history.pushState({}, '', path)
 }
-
-describe('resolveHistoryKey', () => {
-  afterEach(() => {
-    navigateTo('/')
-  })
-
-  it('"origin" resolves to a fixed constant, independent of the current URL', () => {
-    navigateTo('/some/page?x=1')
-    expect(resolveHistoryKey('origin')).toBe(resolveHistoryKey('origin'))
-    navigateTo('/other/page?y=2')
-    const second = resolveHistoryKey('origin')
-    navigateTo('/some/page?x=1')
-    expect(resolveHistoryKey('origin')).toBe(second)
-  })
-
-  it('"path" resolves to location.pathname, ignoring the query string', () => {
-    navigateTo('/docs/guide?tab=2')
-    const withQuery = resolveHistoryKey('path')
-    navigateTo('/docs/guide?tab=3')
-    expect(resolveHistoryKey('path')).toBe(withQuery)
-
-    navigateTo('/docs/other')
-    expect(resolveHistoryKey('path')).not.toBe(withQuery)
-  })
-
-  it('"url" (default) resolves to pathname + search, distinguishing query-string variations', () => {
-    navigateTo('/docs/guide?tab=2')
-    const first = resolveHistoryKey('url')
-    navigateTo('/docs/guide?tab=3')
-    const second = resolveHistoryKey('url')
-    expect(second).not.toBe(first)
-  })
-
-  it('ignores the hash when resolving "url"', () => {
-    navigateTo('/docs/guide?tab=2#section-1')
-    const withHash = resolveHistoryKey('url')
-    navigateTo('/docs/guide?tab=2#section-2')
-    expect(resolveHistoryKey('url')).toBe(withHash)
-  })
-
-  it('any other literal value is used verbatim', () => {
-    expect(resolveHistoryKey('my-custom-key')).toBe('my-custom-key')
-  })
-})
 
 describe('History storage', () => {
   afterEach(() => {
@@ -78,7 +34,7 @@ describe('History storage', () => {
     expect(readHistory('test-key', 5)).toEqual([])
   })
 
-  it('isolates different history-key scopes from each other', () => {
+  it('isolates different storage-key scopes from each other', () => {
     appendExchange('scope-a', { user: 'a', assistant: 'a-reply' }, 5)
     appendExchange('scope-b', { user: 'b', assistant: 'b-reply' }, 5)
 

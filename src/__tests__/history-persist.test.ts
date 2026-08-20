@@ -81,14 +81,14 @@ describe('Persisting History after a response', () => {
     expect(readHistory('url', 5)).toEqual([])
   })
 
-  it('namespaces persisted Exchanges under the configured history-key', async () => {
+  it('namespaces persisted Exchanges under the configured storage-key', async () => {
     const childSession = createMockSession({ promptStreamingChunks: ['reply'] })
     const parentSession = createMockSession()
     parentSession.clone = async () => childSession
     const LM = mockLanguageModel({ parentSession })
     ;(globalThis as { LanguageModel?: unknown }).LanguageModel = LM
     const chat = mount()
-    chat.setAttribute('history-key', 'my-app')
+    chat.setAttribute('storage-key', 'my-app')
     await flushMicrotasks()
     expandWidget(chat)
     await flushMicrotasks()

@@ -1,6 +1,7 @@
 import { appendExchange, clearHistory, type Exchange, readHistory } from './history.js'
 import { getLanguageModel, type LanguageModelAPI, type LanguageModelMessage, type LanguageModelSession } from './language-model.js'
 import { renderCompleteMarkdown, renderMarkdownStream } from './markdown.js'
+import { type Position, readVisualState, writeVisualState } from './visual-state.js'
 
 const WIDGET_STYLES = `
   :host {
@@ -361,13 +362,18 @@ export class LocalChat extends HTMLElement {
     style.textContent = WIDGET_STYLES
     this.#root.appendChild(style)
 
+    const visualState = readVisualState(this.storageKey)
+
     if (!this.hasAttribute('hide-toggle')) {
       this.#toggleButton = document.createElement('button')
       this.#toggleButton.setAttribute('part', 'toggle')
       this.#toggleButton.setAttribute('aria-label', 'Open chat')
       this.#toggleButton.title = this.title || DEFAULT_TITLE
       this.#renderLogoInto(this.#toggleButton)
-      this.#makeDraggable(this.#toggleButton, this.#toggleButton, () => this.#setCollapsed(false))
+      if (visualState.togglePosition) this.#applyPosition(this.#toggleButton, visualState.togglePosition)
+      this.#makeDraggable(this.#toggleButton, this.#toggleButton, () => this.#setCollapsed(false), () =>
+        this.#persistPosition('togglePosition', this.#toggleButton),
+      )
       this.#root.appendChild(this.#toggleButton)
     }
 
@@ -388,6 +394,11 @@ export class LocalChat extends HTMLElement {
     // title breaks that inheritance; the Clear/Close buttons set their own
     // more specific title regardless.
     this.#panel.title = ''
+    if (visualState.panelPosition) this.#applyPosition(this.#panel, visualState.panelPosition)
+    if (visualState.panelSize) {
+      this.#panel.style.width = visualState.panelSize.width
+      this.#panel.style.height = visualState.panelSize.height
+    }
     this.#root.appendChild(this.#panel)
 
     const resizeHandle = document.createElement('div')
@@ -416,7 +427,7 @@ export class LocalChat extends HTMLElement {
     const header = document.createElement('div')
     header.setAttribute('part', 'panel-header')
     this.#panel.appendChild(header)
-    this.#makeDraggable(header, this.#panel)
+    this.#makeDraggable(header, this.#panel, undefined, () => this.#persistPosition('panelPosition', this.#panel))
 
     const headerLogo = document.createElement('span')
     headerLogo.setAttribute('part', 'logo')
@@ -491,7 +502,7 @@ export class LocalChat extends HTMLElement {
     sendButton.addEventListener('click', () => this.#send())
     inputRow.appendChild(sendButton)
 
-    this.#setCollapsed(this.getAttribute('collapsed') !== 'false')
+    this.#setCollapsed(visualState.collapsed ?? this.getAttribute('collapsed') !== 'false')
   }
 
   /** Expands the Widget (a no-op if already Expanded). See CONTEXT.md's Trigger entry. */
@@ -522,10 +533,12 @@ export class LocalChat extends HTMLElement {
       void this.#establishParentSession()
       this.#input?.focus()
     }
-    // Only a genuine transition dispatches -- not the initial state
-    // established at render time, which isn't something happening in
-    // response to anything a host needs to react to.
+    // Only a genuine transition dispatches or persists -- not the initial
+    // state established at render time, which isn't something happening in
+    // response to anything a host needs to react to (or a user's own choice
+    // worth remembering as Visual state).
     if (wasCollapsed !== undefined) {
+      writeVisualState(this.storageKey, { collapsed })
       this.dispatchEvent(new CustomEvent(collapsed ? 'local-chat-collapsed' : 'local-chat-expanded'))
     }
   }
@@ -542,7 +555,7 @@ export class LocalChat extends HTMLElement {
   #restoreHistoryIfNeeded(): void {
     if (this.#historyChecked) return
     this.#historyChecked = true
-    const exchanges = readHistory(this.historyKey, this.maxHistory)
+    const exchanges = readHistory(this.storageKey, this.maxHistory)
     if (exchanges.length === 0) return
     this.#conversationStarted = true
     this.#removeOpeningPills()
@@ -593,13 +606,15 @@ export class LocalChat extends HTMLElement {
    * a genuine click (including a plain synthetic .click()) -- suppressed only
    * when the preceding pointerdown/up sequence moved enough to count as a
    * drag (used for the toggle button, which needs both behaviors, and is
-   * also its own `target`).
+   * also its own `target`). If `onDragEnd` is given, it fires once per
+   * completed drag that actually moved `target` -- used to persist the new
+   * position to Visual state, never on a plain click that didn't move it.
    *
    * pointermove/pointerup are tracked on `window`, not `handle` -- capture still
    * happens on `handle`, but listening on `window` is the more robust choice
    * regardless of what's capturing.
    */
-  #makeDraggable(handle: HTMLElement, target: HTMLElement, onClick?: () => void): void {
+  #makeDraggable(handle: HTMLElement, target: HTMLElement, onClick?: () => void, onDragEnd?: () => void): void {
     let dragged = false
 
     handle.addEventListener('pointerdown', (e) => {
@@ -621,6 +636,7 @@ export class LocalChat extends HTMLElement {
       const onUp = () => {
         window.removeEventListener('pointermove', onMove)
         window.removeEventListener('pointerup', onUp)
+        if (dragged) onDragEnd?.()
       }
       window.addEventListener('pointermove', onMove)
       window.addEventListener('pointerup', onUp)
@@ -631,6 +647,22 @@ export class LocalChat extends HTMLElement {
         if (!dragged) onClick()
       })
     }
+  }
+
+  /** Applies a previously-persisted Visual state position verbatim -- the same edge/auto pairing #anchorTo left it in, not recomputed against the current viewport. */
+  #applyPosition(target: HTMLElement, position: Position): void {
+    target.style.left = position.left
+    target.style.right = position.right
+    target.style.top = position.top
+    target.style.bottom = position.bottom
+  }
+
+  /** Persists `target`'s current position into Visual state under `field`, once a drag actually moved it. */
+  #persistPosition(field: 'togglePosition' | 'panelPosition', target: HTMLElement | undefined): void {
+    if (!target) return
+    writeVisualState(this.storageKey, {
+      [field]: { left: target.style.left, right: target.style.right, top: target.style.top, bottom: target.style.bottom },
+    })
   }
 
   /**
@@ -651,16 +683,19 @@ export class LocalChat extends HTMLElement {
       const rect = target.getBoundingClientRect()
       const startWidth = rect.width
       const startHeight = rect.height
+      let resized = false
 
       const onMove = (moveEvent: PointerEvent) => {
         const dx = moveEvent.clientX - startX
         const dy = moveEvent.clientY - startY
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) resized = true
         target.style.width = `${startWidth - dx}px`
         target.style.height = `${startHeight - dy}px`
       }
       const onUp = () => {
         window.removeEventListener('pointermove', onMove)
         window.removeEventListener('pointerup', onUp)
+        if (resized) writeVisualState(this.storageKey, { panelSize: { width: target.style.width, height: target.style.height } })
       }
       window.addEventListener('pointermove', onMove)
       window.addEventListener('pointerup', onUp)
@@ -954,8 +989,8 @@ export class LocalChat extends HTMLElement {
     return Number.isNaN(parsed) || parsed < 0 ? 5 : parsed
   }
 
-  get historyKey(): string {
-    return this.getAttribute('history-key') ?? 'url'
+  get storageKey(): string {
+    return this.getAttribute('storage-key') ?? 'url'
   }
 
   #send(): void {
@@ -978,7 +1013,7 @@ export class LocalChat extends HTMLElement {
     void this.#childSessionPromise?.then((session) => session.destroy())
     this.#childSessionPromise = undefined
     this.#conversationStarted = false
-    clearHistory(this.historyKey)
+    clearHistory(this.storageKey)
     if (this.#transcript) this.#transcript.innerHTML = ''
     if (this.#emptyState) this.#emptyState.textContent = this.emptyMessage
     this.#renderStarters()
@@ -1022,7 +1057,7 @@ export class LocalChat extends HTMLElement {
       })
       this.#setStatus(undefined)
       this.dispatchEvent(new CustomEvent('local-chat-response-received', { detail: { text: response } }))
-      appendExchange(this.historyKey, { user: text, assistant: response }, this.maxHistory)
+      appendExchange(this.storageKey, { user: text, assistant: response }, this.maxHistory)
       await this.#generateFollowups(session)
     } catch (error) {
       this.#setStatus(undefined)

@@ -18,11 +18,13 @@ if (jsdomGlobal) {
   })
 }
 
-// Every test file shares one jsdom/localStorage instance across its own
-// `it` blocks (isolation is per-file, not per-test) -- persisted History
-// writes now a real side effect of sending a message, so without this, an
-// Exchange written in one test would leak into and change the behavior of
-// another later test in the same file that also expands the widget.
+// Every test file shares one jsdom/localStorage/sessionStorage instance
+// across its own `it` blocks (isolation is per-file, not per-test) --
+// persisted History and Visual state writes are now a real side effect of
+// sending a message or toggling the Widget, so without this, state written
+// in one test would leak into and change the behavior of another later test
+// in the same file that also expands/collapses the widget.
 afterEach(() => {
   localStorage.clear()
+  sessionStorage.clear()
 })
