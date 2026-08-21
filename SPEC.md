@@ -34,12 +34,16 @@ Context primed into the Parent Session.
 
 **`context`** (attribute or property): raw text, or a JSON array/object of
 structured context. The attribute value is JSON-parsed first; if that
-fails, treated as a plain string. The `.context` property accepts an
-array/object directly too (stringified once, no round trip through
-`JSON.parse`) — a plain string set via the property is used verbatim,
-never JSON-interpreted, unlike the attribute. Combines with whatever
-`context-selector` extracted (both may be used together). The `.context`
-property always wins when both are set.
+fails, treated as a plain string. A string set via the `.context`
+property is parsed exactly the same way — matching `starters` (below),
+and every other attribute-or-property pair in this list, since the two
+forms should behave identically regardless of which one a host reaches
+for. The property additionally accepts an array/object directly (used as
+the structured value straight away — `JSON.stringify`'d for the final
+text, but never round-tripped through `JSON.parse`, since it's already
+the shape a string would otherwise have to be parsed into). Combines with
+whatever `context-selector` extracted (both may be used together). The
+`.context` property always wins when both are set.
 
 **`max-followups`** (attribute): non-negative integer, caps how many
 Follow-ups get suggested after each response. `0` disables Follow-up

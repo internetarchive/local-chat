@@ -826,24 +826,24 @@ export class LocalChat extends HTMLElement {
     }
   }
 
-  #contextOverride: string | undefined
+  #contextOverride: string | unknown[] | Record<string, unknown> | undefined
 
   get context(): string {
-    if (this.#contextOverride !== undefined) return this.#contextOverride
+    if (this.#contextOverride !== undefined) {
+      return typeof this.#contextOverride === 'string' ? coerceToText(this.#contextOverride) : JSON.stringify(this.#contextOverride, null, 2)
+    }
     const attr = this.getAttribute('context')
     return attr === null ? '' : coerceToText(attr)
   }
 
   /**
-   * A string is used verbatim, literal text -- unlike the attribute, which
-   * always attempts JSON.parse first, since a string set here has no reason
-   * to be second-guessed the way a plain HTML attribute value does. An
-   * array/object is JSON.stringify'd once (matching the attribute path's
-   * pretty-printed output) rather than requiring the caller to stringify it
-   * themselves only for #combinedContext to parse it right back.
+   * A string is parsed the same way the attribute is (unchanged from
+   * before). An array/object is used directly, JSON.stringify'd for the
+   * final text without ever going through JSON.parse -- no round trip
+   * needed for a caller that already has the structured value.
    */
   set context(value: string | unknown[] | Record<string, unknown>) {
-    this.#contextOverride = typeof value === 'string' ? value : JSON.stringify(value, null, 2)
+    this.#contextOverride = value
   }
 
   #emptyMessageOverride: string | undefined

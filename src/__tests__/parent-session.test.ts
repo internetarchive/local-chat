@@ -100,6 +100,22 @@ describe('Parent Session creation', () => {
     expect(messages?.[0]?.content).toContain('two')
   })
 
+  it('parses a JSON string set via the .context property the same way the attribute is', async () => {
+    const parentSession = createMockSession()
+    const LM = mockLanguageModel({ parentSession })
+    ;(globalThis as { LanguageModel?: unknown }).LanguageModel = LM
+    const chat = mount()
+    chat.context = '["one", "two"]'
+    await flushMicrotasks()
+
+    expandWidget(chat)
+    await flushMicrotasks()
+
+    const messages = vi.mocked(parentSession.append).mock.calls[0]?.[0]
+    expect(messages?.[0]?.content).toContain('one')
+    expect(messages?.[0]?.content).toContain('two')
+  })
+
   it('the .context property wins when both attribute and property are set', async () => {
     const parentSession = createMockSession()
     const LM = mockLanguageModel({ parentSession })

@@ -227,8 +227,8 @@
               <td>
                 Raw text, or a JSON array/object of structured context, to ground answers in. Combines with
                 <code>context-selector</code> when both are set. Also available as a property, which takes priority
-                over the attribute — a string is used verbatim (never JSON-interpreted, unlike the attribute), or
-                pass an array/object directly (no need to <code>JSON.stringify</code> it yourself).
+                over the attribute — a string is parsed the same way, or pass an array/object directly (no need to
+                <code>JSON.stringify</code> it yourself).
               </td>
             </tr>
             <tr>
