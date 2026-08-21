@@ -307,7 +307,11 @@ absent until the visitor actually changes it from its default.
    Follow-ups the Context can actually answer (see step 2's note on
    fewer-than-the-cap being expected, not force-filled). Rendered as
    clickable pills below the response; clicking one sends it as the next
-   message immediately. Kept as a separate,
+   message immediately, and — the same as a clicked Starter/Icebreaker —
+   removes the whole batch, so it doesn't linger stale alongside whatever
+   comes next. A typed message does the same: any Follow-up pills still
+   showing are removed the moment it's sent, not just when one of them is
+   clicked. Kept as a separate,
    small, fast call on its own Scratch Session rather than folded into the
    streamed response or run directly on the Child Session, since a
    structural output constraint would force the entire streamed response

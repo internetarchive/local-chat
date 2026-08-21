@@ -619,7 +619,7 @@ export class LocalChat extends HTMLElement {
     const exchanges = readHistory(this.storageKey, this.maxHistory)
     if (exchanges.length === 0) return
     this.#conversationStarted = true
-    this.#removeOpeningPills()
+    this.#removePriorSuggestionPills()
     for (const exchange of exchanges) {
       this.#appendMessageBubble('user', exchange.user)
       const bubble = this.#appendMessageBubble('assistant', '')
@@ -883,9 +883,9 @@ export class LocalChat extends HTMLElement {
     this.#appendToTranscript(container)
   }
 
-  /** Removes any Starter/Icebreaker pills still showing -- used wherever a real Exchange is about to begin, so the pre-conversation suggestions don't linger alongside it. */
-  #removeOpeningPills(): void {
-    this.#transcript?.querySelectorAll('[part="starters"], [part="icebreakers"]').forEach((el) => el.remove())
+  /** Removes any Starter/Icebreaker/Follow-up pills still showing -- used wherever a new message is about to be sent, so a superseded batch of suggestions doesn't linger alongside it. */
+  #removePriorSuggestionPills(): void {
+    this.#transcript?.querySelectorAll('[part="starters"], [part="icebreakers"], [part="followups"]').forEach((el) => el.remove())
   }
 
   #combinedContext(): string {
@@ -1116,7 +1116,7 @@ export class LocalChat extends HTMLElement {
   }
 
   #submitText(text: string): void {
-    this.#removeOpeningPills()
+    this.#removePriorSuggestionPills()
     this.#input?.focus()
     void this.#sendMessage(text)
   }
@@ -1194,11 +1194,7 @@ export class LocalChat extends HTMLElement {
 
   #renderFollowups(options: string[]): void {
     if (options.length === 0) return
-    const container = this.#renderPills('followup', options, (text) => {
-      container?.remove()
-      this.#input?.focus()
-      void this.#sendMessage(text)
-    })
+    const container = this.#renderPills('followup', options, (text) => this.#submitText(text))
     this.#appendToTranscript(container)
   }
 

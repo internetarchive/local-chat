@@ -121,6 +121,25 @@ describe('Follow-ups', () => {
     expect(chat.shadowRoot?.activeElement).toBe(input)
   })
 
+  it('removes stale Follow-up pills when the next message is typed instead of a pill being clicked', async () => {
+    setUpChat('["What about X?"]')
+    const chat = mount()
+    await flushMicrotasks()
+    expandWidget(chat)
+    await flushMicrotasks()
+
+    sendMessage(chat, 'hello')
+    await flushMicrotasks()
+    expect(chat.shadowRoot?.querySelectorAll('[part="followups"]')).toHaveLength(1)
+
+    sendMessage(chat, 'a manually typed follow-up, not a pill click')
+    await flushMicrotasks()
+
+    // The first round's pills should be gone, not left dangling alongside the
+    // second round's freshly-generated ones.
+    expect(chat.shadowRoot?.querySelectorAll('[part="followups"]')).toHaveLength(1)
+  })
+
   it('caps the requested count via max-followups', async () => {
     const { scratchSession } = setUpChat()
     const chat = mount()
