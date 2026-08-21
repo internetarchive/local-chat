@@ -834,8 +834,16 @@ export class LocalChat extends HTMLElement {
     return attr === null ? '' : coerceToText(attr)
   }
 
-  set context(value: string) {
-    this.#contextOverride = value
+  /**
+   * A string is used verbatim, literal text -- unlike the attribute, which
+   * always attempts JSON.parse first, since a string set here has no reason
+   * to be second-guessed the way a plain HTML attribute value does. An
+   * array/object is JSON.stringify'd once (matching the attribute path's
+   * pretty-printed output) rather than requiring the caller to stringify it
+   * themselves only for #combinedContext to parse it right back.
+   */
+  set context(value: string | unknown[] | Record<string, unknown>) {
+    this.#contextOverride = typeof value === 'string' ? value : JSON.stringify(value, null, 2)
   }
 
   #emptyMessageOverride: string | undefined
@@ -849,16 +857,23 @@ export class LocalChat extends HTMLElement {
     this.#emptyMessageOverride = value
   }
 
-  #startersOverride: string | undefined
+  #startersOverride: string | string[] | undefined
 
   get starters(): string[] {
-    if (this.#startersOverride !== undefined) return coerceToList(this.#startersOverride)
+    if (this.#startersOverride !== undefined) {
+      return typeof this.#startersOverride === 'string' ? coerceToList(this.#startersOverride) : this.#startersOverride
+    }
     const attr = this.getAttribute('starters')
     return attr === null ? [] : coerceToList(attr)
   }
 
-  set starters(value: string) {
-    this.#startersOverride = value
+  /**
+   * A string is parsed the same way the attribute is (unchanged from
+   * before). An array is used directly, filtered to string items -- no
+   * JSON.parse round-trip needed for a caller that already has the list.
+   */
+  set starters(value: string | string[]) {
+    this.#startersOverride = Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : value
   }
 
   #renderStarters(): void {

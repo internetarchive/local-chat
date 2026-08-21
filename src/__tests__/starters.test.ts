@@ -58,6 +58,30 @@ describe('Starters', () => {
     expect(pills?.[0]?.textContent).toBe('property value')
   })
 
+  it('accepts an array directly via the property, without needing to JSON.stringify it first', async () => {
+    ;(globalThis as { LanguageModel?: unknown }).LanguageModel = mockLanguageModel()
+    const chat = mount()
+    chat.starters = ['Summarize this page', 'List named entities']
+    await flushMicrotasks()
+
+    const pills = chat.shadowRoot?.querySelectorAll('[part="starter"]')
+    expect(pills).toHaveLength(2)
+    expect(pills?.[0]?.textContent).toBe('Summarize this page')
+    expect(pills?.[1]?.textContent).toBe('List named entities')
+  })
+
+  it('filters non-string items when the property is set to an array', async () => {
+    ;(globalThis as { LanguageModel?: unknown }).LanguageModel = mockLanguageModel()
+    const chat = mount()
+    // @ts-expect-error -- deliberately passing a malformed array to confirm runtime filtering
+    chat.starters = ['Summarize this page', 42, null]
+    await flushMicrotasks()
+
+    const pills = chat.shadowRoot?.querySelectorAll('[part="starter"]')
+    expect(pills).toHaveLength(1)
+    expect(pills?.[0]?.textContent).toBe('Summarize this page')
+  })
+
   it('clicking a Starter pill sends it as the first message', async () => {
     const LM = mockLanguageModel()
     ;(globalThis as { LanguageModel?: unknown }).LanguageModel = LM

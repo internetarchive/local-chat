@@ -117,6 +117,38 @@ describe('Parent Session creation', () => {
     expect(messages?.[0]?.content).not.toContain('attribute value')
   })
 
+  it('accepts an array directly via the .context property, without needing to JSON.stringify it first', async () => {
+    const parentSession = createMockSession()
+    const LM = mockLanguageModel({ parentSession })
+    ;(globalThis as { LanguageModel?: unknown }).LanguageModel = LM
+    const chat = mount()
+    chat.context = ['one', 'two']
+    await flushMicrotasks()
+
+    expandWidget(chat)
+    await flushMicrotasks()
+
+    const messages = vi.mocked(parentSession.append).mock.calls[0]?.[0]
+    expect(messages?.[0]?.content).toContain('one')
+    expect(messages?.[0]?.content).toContain('two')
+  })
+
+  it('accepts an object directly via the .context property', async () => {
+    const parentSession = createMockSession()
+    const LM = mockLanguageModel({ parentSession })
+    ;(globalThis as { LanguageModel?: unknown }).LanguageModel = LM
+    const chat = mount()
+    chat.context = { topic: 'widgets' }
+    await flushMicrotasks()
+
+    expandWidget(chat)
+    await flushMicrotasks()
+
+    const messages = vi.mocked(parentSession.append).mock.calls[0]?.[0]
+    expect(messages?.[0]?.content).toContain('topic')
+    expect(messages?.[0]?.content).toContain('widgets')
+  })
+
   it('does not create the Parent Session again on a later Expand', async () => {
     const parentSession = createMockSession()
     const LM = mockLanguageModel({ parentSession })
