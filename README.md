@@ -9,12 +9,15 @@ Chrome's built-in on-device AI, grounded in context you provide.
 ## Status
 
 Implemented per `SPEC.md`: Parent/Child on-device sessions, streamed
-markdown responses, Follow-ups/Starters/Icebreakers, persisted History,
-drag/resize, host-invokable Triggers (`trigger-selector` or the
-`expand()`/`collapse()`/`toggle()` methods), multi-line input, and Shadow
-DOM theming via `--local-chat-*` custom properties. Requires a Chrome
-build with the on-device Prompt API (`window.LanguageModel`) available;
-the component is a no-op everywhere else.
+markdown responses, Follow-ups/Starters/Icebreakers (with a configurable
+Empty message shown before either exists), persisted History, draggable/
+resizable positioning with its own persisted Visual state, host-invokable
+Triggers (`trigger-selector` or the `expand()`/`collapse()`/`toggle()`
+methods), multi-line input, light/dark mode (auto-switching via
+`prefers-color-scheme`, or forced either way via `color-scheme`), and
+Shadow DOM theming via `--local-chat-*` custom properties. Requires a
+Chrome build with the on-device Prompt API (`window.LanguageModel`)
+available; the component is a no-op everywhere else.
 
 ## Installation
 
